@@ -1,0 +1,13 @@
+schema: micro_arch
+version: 0.1.0
+fields:
+  module_decomposition: list
+  interfaces: list
+  parameters: list
+  fsm: list
+  datapath: list
+  memory_behavior: list
+  reset_strategy: string
+  cdc_rdc_strategy: string
+  latency_contract: string
+  verification_seed: list

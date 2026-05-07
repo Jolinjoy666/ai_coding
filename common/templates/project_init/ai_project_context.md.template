@@ -1,0 +1,43 @@
+# AI Project Context: {{PROJECT_NAME}}
+
+## Bootstrap summary
+
+- **Project name**: `{{PROJECT_NAME}}`
+- **Block name**: `{{BLOCK_NAME}}`
+- **Design type**: `{{DESIGN_TYPE}}`
+- **Target language**: SystemVerilog
+- **Target simulator**: `{{TARGET_SIMULATOR}}`
+- **Created from**: raw user spec
+
+## Source of truth
+
+- Raw spec: `spec/raw_spec.md`
+- Project metadata: `project.yaml`
+- Common workflow root: `../common/workflows`
+- Common skill root: `../common/skills`
+
+## Current workflow stage
+
+```text
+project_bootstrap_from_spec
+```
+
+## Next recommended stage
+
+```text
+spec_to_requirements
+```
+
+## AI operating rules for this project
+
+- Preserve raw spec exactly.
+- Put generated RTL drafts under `rtl/generated/` until reviewed.
+- Put reviewed RTL under `rtl/src/`.
+- Keep project-specific scripts under `tools/` or `sim/`.
+- Keep reusable assets under `../common`, not inside this project.
+- Record major assumptions and decisions in `ai/` or `docs/`.
+- Do not overwrite existing source or reports without checking.
+
+## Open questions
+
+- TBD

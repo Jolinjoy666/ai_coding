@@ -1,0 +1,46 @@
+name: rtl_simulation_debug
+version: 0.1.0
+category: 50_simulation
+description: >
+  Plan, create, run, and debug simulator-agnostic RTL/SystemVerilog smoke and directed
+  simulations before or alongside full UVM verification.
+
+inputs:
+  required:
+    - rtl_or_module_under_test
+    - interface_contract
+    - expected_behavior
+  optional:
+    - micro_architecture
+    - existing_testbench
+    - simulator_adapter
+    - waveform
+    - simulation_log
+    - failing_command
+
+outputs:
+  required:
+    - simulation_plan
+    - directed_test_scenarios
+    - run_commands
+    - debug_or_result_summary
+  optional:
+    - tb_patch_suggestion
+    - assertion_suggestions
+    - waveform_debug_plan
+    - next_verification_steps
+
+quality_gates:
+  - reset_and_clock_are_checked
+  - latency_expectation_is_defined
+  - pass_fail_criteria_are_defined
+  - logs_and_waves_are_preserved
+
+guardrails:
+  must_do:
+    - isolate the smallest failing case
+    - compare DUT, TB, and reference expectations separately
+    - recommend rerun commands
+  must_not:
+    - replace UVM closure with smoke tests
+    - hide uncertain expected behavior

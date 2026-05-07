@@ -1,0 +1,68 @@
+name: ppa_rtl_optimization
+version: 0.1.0
+category: 80_design_refinement
+description: >
+  Optimize RTL for performance, power, and area using timing, area, power, lint,
+  simulation, and design-intent evidence. Preserve functional equivalence or explicitly
+  document protocol and latency changes.
+
+applies_to:
+  - timing_optimization
+  - area_optimization
+  - power_optimization
+  - pipeline_refinement
+  - resource_sharing
+  - memory_mapping
+  - ready_path_breaking
+
+inputs:
+  required:
+    - rtl_context
+    - optimization_goal
+    - design_contract
+  optional:
+    - timing_report
+    - area_report
+    - power_report
+    - critical_path
+    - synthesis_report
+    - simulation_result
+    - coverage_result
+    - latency_requirement
+    - throughput_requirement
+
+outputs:
+  required:
+    - optimization_summary
+    - tradeoff_analysis
+    - recommended_rtl_change
+    - validation_plan
+  optional:
+    - alternative_options
+    - latency_impact_notes
+    - ppa_risk_notes
+    - reference_model_update_notes
+    - assertion_update_notes
+
+references:
+  standards:
+    - common/standards/pipeline_timing.md
+    - common/standards/low_power_rtl.md
+    - common/standards/memory_register_file.md
+    - common/standards/rtl_arithmetic_fixed_point.md
+  checklists:
+    - common/checklists/ppa_review_checklist.md
+    - common/checklists/rtl_review_checklist.md
+
+guardrails:
+  must_do:
+    - identify whether optimization changes visible behavior or latency
+    - preserve valid/data/sideband alignment
+    - state equivalence or verification requirements
+    - compare alternatives when tradeoffs are non-obvious
+  must_not:
+    - optimize before functional intent is stable
+    - change interface contract silently
+    - use multicycle paths without protocol proof
+    - introduce clock gating by manually ANDing clocks
+    - share resources unless mutual exclusion is proven

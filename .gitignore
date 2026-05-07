@@ -1,0 +1,67 @@
+# VCS simulation files
+*.o
+*.so
+*.a
+*.da
+*.bb
+*.bbg
+*.gcno
+*.gcda
+*.gcov
+simv
+simv.daidir/
+csrc/
+ucli.key
+DVEfiles/
+*.vpd
+*.fsdb
+*.vcd
+*.log
+*.history
+*.wlf
+*.vstf
+*.dbg
+AN.DB/
+DVEfiles/
+inter.vpd
+ucli.key
+.vcsmx_rebuild
+
+# Verdi files
+verdiLog/
+novas*
+vc_hdrs.h
+vfastLog
+nWave*
+
+# Simulation run directories
+*/sim/run/
+*/sim/csrc/
+
+# Compiled files
+*.compiled
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Build directories
+build/
+output/
+results/
+
+# Temporary files
+*.tmp
+*.bak

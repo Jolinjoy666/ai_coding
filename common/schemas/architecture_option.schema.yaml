@@ -1,0 +1,14 @@
+schema: architecture_option
+version: 0.1.0
+fields:
+  option_name: string
+  summary: string
+  optimized_for: list
+  datapath: string
+  control: string
+  memory_strategy: string
+  interface_impact: string
+  latency_throughput: string
+  ppa_tradeoffs: map
+  verification_impact: string
+  risks: list

@@ -1,0 +1,44 @@
+name: regression_failure_analysis
+version: 0.1.0
+category: 70_regression_debug
+description: >
+  Analyze simulator-independent regression failures, cluster root causes, preserve
+  reproduction evidence, and recommend debug priorities and rerun plans.
+
+inputs:
+  required:
+    - regression_summary
+  optional:
+    - failing_logs
+    - test_seed_list
+    - waveform_paths
+    - recent_changes
+    - coverage_summary
+    - known_issues
+
+outputs:
+  required:
+    - failure_clusters
+    - likely_root_causes
+    - reproduction_commands
+    - recommended_debug_order
+    - rerun_plan
+  optional:
+    - owner_recommendation
+    - risk_items
+    - coverage_impact
+
+quality_gates:
+  - failures_are_clustered
+  - reproduction_data_is_preserved
+  - root_cause_evidence_is_cited
+  - rerun_plan_is_clear
+
+guardrails:
+  must_do:
+    - separate infrastructure failures from design failures
+    - identify first failing point when possible
+    - keep seed and command reproducible
+  must_not:
+    - assume all failures have the same root cause
+    - delete failing artifacts

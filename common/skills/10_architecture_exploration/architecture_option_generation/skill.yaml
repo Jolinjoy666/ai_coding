@@ -1,0 +1,45 @@
+name: architecture_option_generation
+version: 0.1.0
+category: 10_architecture_exploration
+description: >
+  Generate, compare, and recommend digital IC architecture options based on structured
+  requirements, constraints, PPA goals, verification complexity, and integration risk.
+
+inputs:
+  required:
+    - structured_requirements
+  optional:
+    - ppa_targets
+    - latency_throughput_targets
+    - clock_reset_constraints
+    - integration_constraints
+    - reusable_ip_options
+    - verification_constraints
+
+outputs:
+  required:
+    - architecture_options
+    - tradeoff_matrix
+    - recommended_architecture
+    - decision_rationale
+    - risk_items
+  optional:
+    - block_diagram_notes
+    - memory_strategy
+    - cdc_rdc_strategy
+    - verification_impact
+
+quality_gates:
+  - options_are_distinct
+  - tradeoffs_are_explicit
+  - recommendation_maps_to_requirements
+  - risks_and_assumptions_are_documented
+
+guardrails:
+  must_do:
+    - compare options using measurable criteria
+    - document rejected alternatives
+    - identify verification and signoff impact
+  must_not:
+    - optimize one metric while ignoring functional requirements
+    - hide area/power/timing/verification risks

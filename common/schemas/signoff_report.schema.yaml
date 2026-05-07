@@ -1,0 +1,13 @@
+schema: signoff_report
+version: 0.1.0
+fields:
+  release_name: string
+  release_version: string
+  rtl_manifest: list
+  evidence_matrix: list
+  verification_status: string
+  static_check_status: string
+  coverage_status: string
+  waivers: list
+  known_risks: list
+  next_stage_recommendations: list

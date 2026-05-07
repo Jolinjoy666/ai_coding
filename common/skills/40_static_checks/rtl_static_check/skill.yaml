@@ -1,0 +1,82 @@
+name: rtl_static_check
+version: 0.1.0
+category: 40_static_checks
+description: >
+  Analyze RTL lint, compile, CDC/RDC precheck, and basic synthesis reports. Classify
+  issues, identify root causes, recommend fixes or waivers, and prepare RTL for deeper
+  verification and signoff checks.
+
+applies_to:
+  - lint_analysis
+  - compile_debug
+  - synthesizability_review
+  - warning_triage
+  - pre_signoff_static_review
+
+inputs:
+  required:
+    - rtl_context
+    - tool_report_or_error_log
+  optional:
+    - tool_name
+    - tool_version
+    - filelist
+    - compile_options
+    - design_intent
+    - waiver_policy
+    - previous_report
+
+outputs:
+  required:
+    - issue_summary
+    - severity_classification
+    - root_cause_analysis
+    - recommended_actions
+    - next_check_recommendations
+  optional:
+    - waiver_suggestions
+    - rtl_patch_suggestions
+    - constraint_suggestions
+    - regression_risk_notes
+
+references:
+  standards:
+    - common/standards/systemverilog_rtl_coding.md
+    - common/standards/reset_and_clocking.md
+    - common/standards/signoff_static_checks.md
+  checklists:
+    - common/checklists/rtl_review_checklist.md
+    - common/checklists/signoff_readiness_checklist.md
+
+severity_policy:
+  fatal:
+    - syntax_error
+    - elaboration_failure
+    - multiple_driver_functional_net
+    - combinational_loop
+    - non_synthesizable_required_logic
+  high:
+    - latch_inferred
+    - width_mismatch_on_control_or_address
+    - signed_unsigned_mismatch_on_numeric_path
+    - reset_ambiguity
+    - cdc_rdc_structural_risk
+  medium:
+    - unused_signal_with_possible_missing_logic
+    - incomplete_case_with_safe_default
+    - uninitialized_datapath_masked_by_valid
+  low:
+    - naming_style
+    - harmless_unused_parameter
+    - tool_style_warning
+
+guardrails:
+  must_do:
+    - connect warnings to hardware behavior
+    - distinguish real bug, tool limitation, style issue, and waiver candidate
+    - preserve design intent when recommending fixes
+    - recommend rerun checks after fixes
+  must_not:
+    - waive functional ambiguity
+    - hide CDC/RDC or reset risks under generic lint cleanup
+    - recommend broad style-only rewrites during bug triage

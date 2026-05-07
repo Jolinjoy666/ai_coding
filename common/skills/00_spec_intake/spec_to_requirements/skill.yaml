@@ -1,0 +1,46 @@
+name: spec_to_requirements
+version: 0.1.0
+category: 00_spec_intake
+description: >
+  Convert raw user specifications and design intent into structured digital IC requirements,
+  assumptions, open questions, risks, and initial verification intent.
+
+inputs:
+  required:
+    - raw_spec_or_user_request
+  optional:
+    - protocol_notes
+    - interface_constraints
+    - ppa_targets
+    - clock_reset_constraints
+    - integration_context
+    - verification_expectations
+
+outputs:
+  required:
+    - structured_requirements
+    - assumptions
+    - open_questions
+    - risk_items
+    - initial_verification_intent
+  optional:
+    - out_of_scope_items
+    - requirement_trace_table
+    - glossary
+
+quality_gates:
+  - facts_assumptions_questions_are_separated
+  - measurable_requirements_are_extracted
+  - interface_and_clock_reset_items_are_identified
+  - verification_intent_is_seeded
+  - blocking_questions_are_visible
+
+guardrails:
+  must_do:
+    - preserve original user intent
+    - label assumptions explicitly
+    - ask focused questions when required information blocks progress
+  must_not:
+    - invent protocol behavior silently
+    - hide contradictions
+    - treat assumptions as approved requirements

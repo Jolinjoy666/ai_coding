@@ -1,0 +1,56 @@
+schema: project
+version: 0.1.0
+fields:
+  project:
+    name: string
+    type: enum[ic_design]
+    status: enum[initialized, requirements_ready, architecture_selected, micro_arch_ready, rtl_in_progress, verification_in_progress, signoff_ready]
+    description: string
+    created_from: string
+  metadata:
+    block_name: string
+    design_type: string
+    target_language: string
+    target_simulator: string
+    owner: string
+  paths:
+    spec: path
+    raw_spec: path
+    requirements: path
+    architecture: path
+    micro_architecture: path
+    ai_context: path
+    rtl: path
+    rtl_generated: path
+    rtl_include: path
+    rtl_pkg: path
+    dv: path
+    simulation: path
+    lint: path
+    formal: path
+    synthesis: path
+    tools: path
+    reports: path
+    build: path
+    third_party: path
+  common:
+    root: path
+    skills: path
+    workflows: path
+    standards: path
+    templates: path
+    checklists: path
+    schemas: path
+    eda_adapters: path
+  recommended_workflow:
+    current: string
+    next: string
+    end_to_end: path
+required:
+  - project.name
+  - project.type
+  - project.status
+  - paths.spec
+  - paths.raw_spec
+  - common.root
+  - recommended_workflow.next

@@ -1,0 +1,49 @@
+name: uvm_env_generation
+version: 0.1.0
+category: 60_uvm_generation
+description: >
+  Generate, update, and review UVM agents, env, sequences, tests, scoreboard,
+  reference model integration, coverage, and filelist/simulation-flow updates.
+
+inputs:
+  required:
+    - interface_contract
+    - verification_intent_or_testplan
+  optional:
+    - micro_architecture
+    - rtl_interfaces
+    - existing_uvm_env
+    - reference_model
+    - simulator_flow
+    - coverage_goals
+
+outputs:
+  required:
+    - uvm_architecture_plan
+    - component_list
+    - sequence_test_plan
+    - scoreboard_plan
+    - coverage_plan
+    - simulation_update_notes
+  optional:
+    - code_generation_plan
+    - filelist_updates
+    - assertion_suggestions
+    - risk_items
+
+quality_gates:
+  - interface_contract_is_clear
+  - monitor_sampling_matches_protocol
+  - scoreboard_latency_is_defined
+  - coverage_maps_to_requirements
+  - simulation_flow_updates_are_identified
+
+guardrails:
+  must_do:
+    - align driver and monitor behavior with protocol
+    - document expected latency and transaction matching
+    - keep generated UVM modular and reusable
+  must_not:
+    - hide scoreboard assumptions
+    - ignore sideband or error fields
+    - create random tests without constraints and checks

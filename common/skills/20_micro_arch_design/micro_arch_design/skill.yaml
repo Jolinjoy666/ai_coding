@@ -1,0 +1,50 @@
+name: micro_arch_design
+version: 0.1.0
+category: 20_micro_arch_design
+description: >
+  Convert selected architecture into implementable micro-architecture for RTL and DV,
+  including module partitioning, interfaces, parameters, FSMs, datapath, memory,
+  pipeline, reset, CDC/RDC, assertions, and verification intent.
+
+inputs:
+  required:
+    - selected_architecture
+    - structured_requirements
+  optional:
+    - ppa_targets
+    - interface_constraints
+    - memory_strategy
+    - cdc_rdc_strategy
+    - verification_requirements
+
+outputs:
+  required:
+    - module_decomposition
+    - interface_contracts
+    - parameter_table
+    - fsm_and_control_description
+    - datapath_description
+    - latency_contract
+    - reset_cdc_rdc_notes
+    - verification_seed
+  optional:
+    - block_diagram_text
+    - assertion_candidates
+    - coverage_candidates
+    - risk_items
+
+quality_gates:
+  - rtl_implementation_ready
+  - interface_contracts_are_explicit
+  - latency_and_backpressure_are_defined
+  - memory_behavior_is_defined
+  - verification_impact_is_documented
+
+guardrails:
+  must_do:
+    - document external contracts before RTL
+    - align control, data, valid, and sideband latency
+    - identify CDC/RDC and memory risks
+  must_not:
+    - leave collision or reset behavior implicit
+    - change selected architecture without decision record

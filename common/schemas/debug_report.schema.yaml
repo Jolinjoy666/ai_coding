@@ -1,0 +1,11 @@
+schema: debug_report
+version: 0.1.0
+fields:
+  failure_summary: string
+  classification: string
+  evidence: list
+  root_cause_hypothesis: string
+  recommended_fix: string
+  reproduction_command: string
+  rerun_plan: list
+  risks: list

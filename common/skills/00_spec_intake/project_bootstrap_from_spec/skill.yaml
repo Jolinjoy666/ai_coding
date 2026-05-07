@@ -1,0 +1,63 @@
+name: project_bootstrap_from_spec
+version: 0.1.0
+category: 00_spec_intake
+description: >
+  Initialize a new IC design project directory from a raw user spec, including standard
+  folder structure, project metadata, README, raw spec preservation, and AI context.
+
+inputs:
+  required:
+    - raw_user_spec
+  optional:
+    - desired_project_name
+    - block_name
+    - design_type
+    - target_language
+    - target_simulator
+    - clock_reset_constraints
+    - interface_protocol
+    - ppa_targets
+    - workspace_root
+
+outputs:
+  required:
+    - project_directory
+    - project_yaml
+    - project_readme
+    - raw_spec_file
+    - ai_project_context
+  optional:
+    - initial_requirements_stub
+    - directory_manifest
+    - next_workflow_recommendation
+
+references:
+  templates:
+    - common/templates/project_init/project.yaml.template
+    - common/templates/project_init/README.md.template
+    - common/templates/project_init/ai_project_context.md.template
+    - common/templates/project_init/directory_manifest.md
+  schemas:
+    - common/schemas/project.schema.yaml
+  workflows:
+    - common/workflows/project_bootstrap_from_spec.md
+  next_skills:
+    - common/skills/00_spec_intake/spec_to_requirements
+
+quality_gates:
+  - raw_spec_is_preserved
+  - project_directory_is_unique
+  - standard_directories_are_created
+  - project_yaml_references_common_assets
+  - next_workflow_is_identified
+
+guardrails:
+  must_do:
+    - create project only under approved workspace root
+    - check for existing path before writing
+    - preserve raw user spec verbatim
+    - separate bootstrap metadata from requirements interpretation
+  must_not:
+    - overwrite existing projects without explicit user approval
+    - invent approved requirements during bootstrap
+    - place project-generated files inside common

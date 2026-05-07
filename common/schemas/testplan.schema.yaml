@@ -1,0 +1,10 @@
+schema: testplan
+version: 0.1.0
+fields:
+  features: list
+  directed_tests: list
+  random_tests: list
+  assertions: list
+  coverage_points: list
+  pass_criteria: list
+  risks: list

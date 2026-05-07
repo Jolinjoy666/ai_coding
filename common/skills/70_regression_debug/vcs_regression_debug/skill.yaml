@@ -1,0 +1,89 @@
+name: vcs_regression_debug
+version: 0.1.0
+category: 70_regression_debug
+description: >
+  Debug Synopsys VCS compile, elaboration, link, runtime, UVM, waveform, mismatch,
+  timeout, and regression failures using logs, run directories, seeds, filelists,
+  Makefiles, and waveform/debug evidence.
+
+applies_to:
+  - vcs_compile_debug
+  - vcs_elaboration_debug
+  - vcs_link_debug
+  - uvm_runtime_debug
+  - scoreboard_mismatch_debug
+  - simulation_timeout_debug
+  - fsdb_verdi_debug
+  - regression_triage
+
+inputs:
+  required:
+    - failing_command
+    - log_or_error_excerpt
+    - test_name
+    - seed
+  optional:
+    - compile_log
+    - sim_log
+    - makefile
+    - filelists
+    - regression_summary
+    - waveform_path
+    - scoreboard_dump
+    - reference_model_log
+    - recent_changes
+    - vcs_version
+    - verdi_version
+    - environment_variables
+
+outputs:
+  required:
+    - failure_classification
+    - likely_root_cause
+    - evidence
+    - recommended_next_action
+    - reproduction_command
+  optional:
+    - fix_suggestion
+    - rerun_command
+    - wave_debug_suggestion
+    - waiver_or_known_issue_note
+    - risk_items
+
+references:
+  eda_adapter:
+    - common/eda_adapters/vcs.md
+  checklists:
+    - common/checklists/vcs_flow_review_checklist.md
+  related_skills:
+    - common/skills/50_simulation/vcs_simulation_flow
+    - common/skills/70_regression_debug/regression_failure_analysis
+
+failure_classes:
+  - environment_or_license
+  - filelist_or_include_path
+  - package_or_compile_order
+  - syntax_or_elaboration
+  - undefined_module
+  - dpi_or_pli_link
+  - fsdb_or_verdi
+  - uvm_test_setup
+  - reset_or_clock
+  - timeout_or_deadlock
+  - scoreboard_mismatch
+  - reference_model_mismatch
+  - dut_functional_bug
+  - random_seed_reproducibility
+
+guardrails:
+  must_do:
+    - inspect the first real error before later cascaded errors
+    - preserve test name, seed, command, and run directory
+    - separate DUT issues from TB, scoreboard, reference model, and flow issues
+    - recommend a minimal reproduction command
+    - recommend rerun checks after any fix
+  must_not:
+    - modify RTL without evidence of DUT failure
+    - delete failing logs, waves, or non-reproducible data
+    - assume every mismatch is a DUT bug
+    - ignore license, environment, DPI, or PLI causes

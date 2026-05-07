@@ -1,0 +1,55 @@
+name: rtl_signoff_package
+version: 0.1.0
+category: 90_signoff_package
+description: >
+  Prepare a release-ready RTL signoff package with manifest, verification evidence,
+  static-check status, coverage status, waivers, known risks, and next-stage recommendations.
+
+inputs:
+  required:
+    - final_rtl_or_filelist
+    - requirements_or_spec
+    - verification_results
+  optional:
+    - micro_architecture
+    - testplan
+    - regression_summary
+    - coverage_summary
+    - lint_report
+    - cdc_rdc_report
+    - synthesis_report
+    - waiver_list
+    - release_version
+
+outputs:
+  required:
+    - signoff_summary
+    - release_manifest
+    - evidence_matrix
+    - waiver_summary
+    - known_risks
+    - next_stage_recommendations
+  optional:
+    - requirement_trace_summary
+    - coverage_gap_summary
+    - integration_notes
+
+references:
+  checklists:
+    - common/checklists/signoff_readiness_checklist.md
+
+quality_gates:
+  - final_sources_are_identified
+  - verification_evidence_is_collected
+  - static_check_status_is_known
+  - waivers_have_rationale
+  - risks_are_explicit
+
+guardrails:
+  must_do:
+    - state evidence level clearly
+    - separate waived and unresolved issues
+    - include release version or commit when available
+  must_not:
+    - present unknown status as pass
+    - hide coverage or static-check gaps

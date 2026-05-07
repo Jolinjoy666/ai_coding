@@ -1,0 +1,47 @@
+name: verification_driven_refinement
+version: 0.1.0
+category: 80_design_refinement
+description: >
+  Refine RTL, DV, reference models, assertions, or documentation based on verified
+  simulation/regression evidence while preserving traceability and scoped changes.
+
+inputs:
+  required:
+    - failure_analysis_or_verification_feedback
+    - design_context
+  optional:
+    - rtl_files
+    - dv_files
+    - reference_model
+    - spec
+    - micro_architecture
+    - logs
+    - wave_notes
+
+outputs:
+  required:
+    - scoped_change_plan
+    - implemented_or_recommended_fix
+    - validation_plan
+    - risk_summary
+  optional:
+    - documentation_update_notes
+    - test_update_notes
+    - reference_model_update_notes
+    - coverage_update_notes
+
+quality_gates:
+  - root_cause_is_addressed
+  - scope_is_limited
+  - visible_behavior_changes_are_documented
+  - rerun_plan_is_defined
+
+guardrails:
+  must_do:
+    - update related artifacts when behavior changes
+    - preserve interface contracts unless explicitly changed
+    - recommend static and dynamic checks after changes
+  must_not:
+    - apply unrelated cleanup
+    - patch symptoms without evidence
+    - ignore reference model or scoreboard impact

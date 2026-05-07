@@ -1,0 +1,119 @@
+project:
+  name: "Uart_Controller"
+  type: ic_design
+  status: verification_complete
+  description: "Configurable UART Packet Controller with APB-Lite host interface for embedded peripheral control"
+  created_from: raw_user_spec
+  version: "1.0"
+  last_updated: "2026-05-07"
+
+metadata:
+  block_name: "uart_packet_controller"
+  design_type: "digital_peripheral"
+  target_language: systemverilog
+  target_simulator: "vcs"
+  owner: "ai_agent"
+
+paths:
+  spec: spec
+  raw_spec: spec/DESIGN_SPEC.md
+  requirements: spec/requirements.md
+  architecture: docs/architecture
+  micro_architecture: docs/micro_arch
+  ai_context: ai/project_context.md
+  rtl: rtl/src
+  rtl_generated: rtl/generated
+  rtl_include: rtl/include
+  rtl_pkg: rtl/pkg
+  dv: dv
+  simulation: sim
+  lint: lint
+  formal: formal
+  synthesis: synth
+  tools: tools
+  reports: reports
+  build: build
+  third_party: third_party
+  docs: docs
+
+common:
+  root: ../common
+  skills: ../common/skills
+  workflows: ../common/workflows
+  standards: ../common/standards
+  templates: ../common/templates
+  checklists: ../common/checklists
+  schemas: ../common/schemas
+  eda_adapters: ../common/eda_adapters
+
+recommended_workflow:
+  current: verification_complete
+  next: signoff_package
+  end_to_end: ../common/workflows/end_to_end_ic_ai_coding.md
+
+design:
+  modules: 14
+  top_module: uart_packet_controller
+  parameters:
+    CLK_FREQ_HZ: 50000000
+    BAUD_RATE: 115200
+    OVERSAMPLE: 16
+    DATA_WIDTH: 8
+    FIFO_DEPTH: 32
+    MAX_PAYLOAD_BYTES: 16
+    MEM_ADDR_WIDTH: 4
+    APB_ADDR_WIDTH: 8
+    APB_DATA_WIDTH: 32
+    TIMEOUT_BITS: 16
+    INTER_BYTE_TIMEOUT: 50000
+
+verification:
+  method: uvm
+  uvm_version: "1.2"
+  status: passed
+  tests:
+    - name: ping_test
+      status: passed
+    - name: reg_access_test
+      status: passed
+    - name: mem_access_test
+      status: passed
+    - name: full_function_test
+      status: passed
+  coverage:
+    functional: not_implemented
+    code: not_implemented
+  scoreboard:
+    status: passed
+    errors: 0
+    mismatches: 0
+
+commands:
+  supported:
+    - opcode: 0x01
+      name: PING
+      status: verified
+    - opcode: 0x10
+      name: REG_READ
+      status: verified
+    - opcode: 0x11
+      name: REG_WRITE
+      status: verified
+    - opcode: 0x20
+      name: MEM_READ
+      status: verified
+    - opcode: 0x21
+      name: MEM_WRITE
+      status: verified
+    - opcode: 0x30
+      name: STATUS_READ
+      status: verified
+    - opcode: 0x31
+      name: FIFO_STATUS
+      status: verified
+    - opcode: 0x40
+      name: LOOPBACK_CFG
+      status: verified
+    - opcode: 0x7E
+      name: SOFT_RESET
+      status: verified

@@ -1,0 +1,49 @@
+project:
+  name: "{{PROJECT_NAME}}"
+  type: ic_design
+  status: initialized
+  description: "{{PROJECT_DESCRIPTION}}"
+  created_from: raw_user_spec
+
+metadata:
+  block_name: "{{BLOCK_NAME}}"
+  design_type: "{{DESIGN_TYPE}}"
+  target_language: systemverilog
+  target_simulator: "{{TARGET_SIMULATOR}}"
+  owner: "{{OWNER}}"
+
+paths:
+  spec: spec
+  raw_spec: spec/raw_spec.md
+  requirements: spec/requirements.md
+  architecture: docs/architecture
+  micro_architecture: docs/micro_arch
+  ai_context: ai/project_context.md
+  rtl: rtl/src
+  rtl_generated: rtl/generated
+  rtl_include: rtl/include
+  rtl_pkg: rtl/pkg
+  dv: dv
+  simulation: sim
+  lint: lint
+  formal: formal
+  synthesis: synth
+  tools: tools
+  reports: reports
+  build: build
+  third_party: third_party
+
+common:
+  root: ../common
+  skills: ../common/skills
+  workflows: ../common/workflows
+  standards: ../common/standards
+  templates: ../common/templates
+  checklists: ../common/checklists
+  schemas: ../common/schemas
+  eda_adapters: ../common/eda_adapters
+
+recommended_workflow:
+  current: project_bootstrap_from_spec
+  next: spec_to_requirements
+  end_to_end: ../common/workflows/end_to_end_ic_ai_coding.md

@@ -1,0 +1,89 @@
+name: vcs_simulation_flow
+version: 0.1.0
+category: 50_simulation
+description: >
+  Build, maintain, and review Synopsys VCS RTL/SystemVerilog/UVM simulation flows,
+  including Makefile targets, filelists, compile/elaboration options, runtime plusargs,
+  FSDB/Verdi wave support, log checks, and reproducible smoke/regression commands.
+
+applies_to:
+  - vcs
+  - systemverilog_simulation
+  - rtl_simulation
+  - uvm_simulation
+  - simulation_makefile
+  - filelist_management
+  - fsdb_verdi_debug
+
+inputs:
+  required:
+    - simulation_directory
+    - top_module_or_tb_top
+    - source_or_filelist_plan
+    - simulation_mode
+  optional:
+    - existing_makefile
+    - existing_filelists
+    - vcs_version
+    - verdi_home
+    - uvm_version
+    - dpi_files
+    - pli_requirement
+    - test_list
+    - seed_policy
+    - pass_marker
+    - run_directory_policy
+
+outputs:
+  required:
+    - makefile_or_patch
+    - filelist_guidance
+    - smoke_run_command
+    - log_check_command
+    - wave_debug_command
+  optional:
+    - regression_command
+    - verdi_command
+    - environment_assumptions
+    - tool_option_notes
+    - risk_items
+
+references:
+  eda_adapter:
+    - common/eda_adapters/vcs.md
+  templates:
+    - common/templates/simulation/vcs/Makefile
+    - common/templates/simulation/vcs/filelists/rtl.f
+    - common/templates/simulation/vcs/filelists/tb.f
+    - common/templates/simulation/vcs/filelists/dv.f
+    - common/templates/simulation/vcs/scripts/check_sim_log.py
+  checklists:
+    - common/checklists/vcs_flow_review_checklist.md
+  workflows:
+    - common/workflows/vcs_rtl_uvm_simulation.md
+
+quality_gates:
+  - compile_and_run_are_separable
+  - filelist_paths_are_stable
+  - package_order_is_explicit
+  - required_plusargs_are_not_user_overridable
+  - compile_and_run_logs_are_saved
+  - seed_and_test_are_reproducible
+  - wave_is_disabled_by_default
+  - clean_target_has_safe_boundary
+  - smoke_command_is_documented
+
+guardrails:
+  must_do:
+    - inspect existing Makefile and filelists before editing
+    - preserve project directory conventions unless explicitly changing them
+    - keep user-facing commands simple
+    - keep base plusargs separate from user PLUSARGS
+    - add log checking for UVM_FATAL, UVM_ERROR, mismatch, timeout, and missing pass marker
+    - provide verification commands after any flow change
+  must_not:
+    - delete source, golden data, or non-reproducible inputs in clean targets
+    - enable full waveform dumping by default in regressions
+    - duplicate package compilation across filelists
+    - hide VCS/Verdi/license assumptions
+    - treat simulation flow setup as proof of RTL correctness

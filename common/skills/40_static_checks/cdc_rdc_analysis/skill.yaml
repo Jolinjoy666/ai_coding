@@ -1,0 +1,60 @@
+name: cdc_rdc_analysis
+version: 0.1.0
+category: 40_static_checks
+description: >
+  Analyze CDC and RDC structures, risks, reports, and constraints. Recommend safe
+  synchronizers, handshakes, async FIFOs, reset synchronizers, verification checks,
+  and waiver rationale.
+
+applies_to:
+  - cdc_review
+  - rdc_review
+  - multi_clock_design
+  - reset_release_analysis
+  - async_fifo_review
+  - synchronizer_review
+
+inputs:
+  required:
+    - clock_reset_domain_info
+    - crossing_description_or_rtl
+  optional:
+    - cdc_report
+    - rdc_report
+    - constraints
+    - waiver_file
+    - synchronizer_library
+    - async_fifo_design
+    - reset_sequence_requirement
+
+outputs:
+  required:
+    - domain_map
+    - crossing_classification
+    - risk_assessment
+    - recommended_actions
+    - verification_recommendations
+  optional:
+    - constraint_notes
+    - waiver_rationale
+    - synchronizer_recommendation
+    - formal_property_suggestions
+
+references:
+  standards:
+    - common/standards/cdc_rdc_guidelines.md
+    - common/standards/reset_and_clocking.md
+  checklists:
+    - common/checklists/cdc_rdc_review_checklist.md
+
+guardrails:
+  must_do:
+    - classify crossing type before recommending implementation
+    - treat reset release as a real crossing risk
+    - document assumptions about clock relationship and signal stability
+    - recommend formal or assertion checks for protocol-based crossings
+  must_not:
+    - approve multi-bit bus flop-chain synchronization without protocol proof
+    - ignore reset ordering assumptions
+    - waive reconvergence risks without technical rationale
+    - assume clocks are related unless constraints prove it

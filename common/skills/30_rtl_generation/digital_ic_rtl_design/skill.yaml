@@ -1,0 +1,108 @@
+name: digital_ic_rtl_design
+version: 0.1.0
+category: 30_rtl_generation
+description: >
+  Generate, modify, and review synthesizable digital IC RTL for ASIC and FPGA designs.
+  Covers SystemVerilog RTL coding, interface contracts, timing-aware structure, reset,
+  CDC/RDC assumptions, arithmetic semantics, memory behavior, assertion suggestions,
+  verification planning, and signoff-oriented review.
+
+applies_to:
+  - Verilog RTL
+  - SystemVerilog RTL
+  - ASIC front-end design
+  - FPGA RTL design
+  - reusable IP blocks
+  - micro-architecture implementation
+
+primary_tasks:
+  - create_new_rtl_module
+  - modify_existing_rtl_functionality
+  - review_rtl_quality
+  - implement_micro_architecture
+  - add_protocol_assertion_recommendations
+  - prepare_rtl_for_static_checks
+
+inputs:
+  required:
+    - spec_or_requirement
+    - interface_contract
+    - clock_and_reset_definition
+    - parameter_definition
+    - expected_behavior
+  optional:
+    - architecture_document
+    - micro_architecture_document
+    - existing_rtl
+    - reference_model
+    - testplan
+    - lint_report
+    - simulation_log
+    - timing_or_ppa_target
+    - memory_macro_assumption
+    - cdc_rdc_assumption
+
+outputs:
+  required:
+    - synthesizable_rtl_or_patch
+    - design_assumption_notes
+    - interface_latency_notes
+    - verification_recommendations
+    - rtl_review_summary
+  optional:
+    - assertion_suggestions
+    - filelist_update_suggestions
+    - reference_model_update_notes
+    - risk_items
+    - open_questions
+
+references:
+  standards:
+    - common/standards/systemverilog_rtl_coding.md
+    - common/standards/reset_and_clocking.md
+    - common/standards/fsm_design.md
+    - common/standards/ready_valid_protocol.md
+    - common/standards/pipeline_timing.md
+    - common/standards/cdc_rdc_guidelines.md
+    - common/standards/memory_register_file.md
+    - common/standards/rtl_arithmetic_fixed_point.md
+    - common/standards/assertion_verification_guidelines.md
+  checklists:
+    - common/checklists/rtl_review_checklist.md
+
+quality_gates:
+  - behavior_matches_spec
+  - synthesizable_subset_only
+  - explicit_width_and_signedness
+  - no_unintended_latch
+  - no_multiple_driver_register
+  - reset_strategy_documented
+  - latency_and_sideband_alignment_documented
+  - cdc_rdc_assumption_documented
+  - memory_collision_semantics_documented
+  - verification_next_steps_provided
+
+guardrails:
+  must_do:
+    - confirm interface protocol, clock, reset, latency, and backpressure before implementation
+    - keep changes limited to task scope
+    - preserve external contract unless explicitly asked to change it
+    - update documentation or notes when latency, protocol, or visible behavior changes
+    - recommend tests or assertions for changed behavior
+  must_not:
+    - introduce non-synthesizable RTL constructs
+    - rely on unsized constants in critical arithmetic
+    - directly synchronize multi-bit CDC buses with simple flop chains
+    - hand-write gated clocks in RTL
+    - reset large memories through reset loops without explicit requirement
+    - hide numerical rounding, truncation, saturation, or overflow behavior
+    - treat simulation-only success as signoff evidence
+
+workflow:
+  - collect_or_validate_contract
+  - identify_hardware_structure
+  - define_parameters_and_widths
+  - implement_or_modify_rtl
+  - check_reset_latency_cdc_memory_arithmetic
+  - self_review_against_checklist
+  - propose_verification_and_static_checks

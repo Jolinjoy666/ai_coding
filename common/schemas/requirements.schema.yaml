@@ -1,0 +1,11 @@
+schema: requirements
+version: 0.1.0
+fields:
+  design_name: string
+  summary: string
+  confirmed_requirements: list
+  assumptions: list
+  open_questions: list
+  constraints: map
+  verification_intent: list
+  risks: list

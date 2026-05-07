@@ -1,0 +1,11 @@
+schema: simulation_result
+version: 0.1.0
+fields:
+  test_name: string
+  seed: string
+  command: string
+  status: enum[PASS, FAIL, BLOCKED, UNKNOWN]
+  log_path: string
+  wave_path: string
+  failures: list
+  notes: string
