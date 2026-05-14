@@ -113,6 +113,10 @@ module attention_engine
       kvcache_base <= KVCACHE_BASE;
       irq_en       <= '0;
       irq_status   <= '0;
+      start        <= 1'b0;
+      abort        <= 1'b0;
+      status_busy  <= 1'b0;
+      status_done  <= 1'b0;
     end else begin
       // APB write
       if (psel_i && penable_i && pwrite_i) begin
@@ -240,6 +244,15 @@ module attention_engine
   // Mux K/V reads to single KV-Cache SRAM port
   assign kv_rd_en_o   = fa_k_rd_en | fa_v_rd_en;
   assign kv_rd_addr_o = fa_v_rd_en ? fa_v_rd_addr : fa_k_rd_addr;
+
+  // Weight SRAM: not used by flash_attention_core (Q/K/V stored directly)
+  assign wt_rd_en_o   = 1'b0;
+  assign wt_rd_addr_o = '0;
+
+  // KV-Cache write: not used by flash_attention_core (output goes to Feature SRAM)
+  assign kv_wr_en_o   = 1'b0;
+  assign kv_wr_addr_o = '0;
+  assign kv_wr_data_o = '0;
 
   // MAC array
   fp16_mac_array u_mac (

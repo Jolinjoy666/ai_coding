@@ -447,6 +447,7 @@ module attentioncore_soc_top
     .rdata_o(wt_rdata)
   );
 
+
   // Feed read data back to attention engine
   assign attn_wt_rd_data = wt_rdata;
 

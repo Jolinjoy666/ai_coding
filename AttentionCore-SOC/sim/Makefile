@@ -25,6 +25,7 @@ RTL_FILES = \
   $(RTL_DIR)/fp16_comparator.sv \
   $(RTL_DIR)/fp16_rowmax.sv \
   $(RTL_DIR)/fp16_rowsum.sv \
+  $(RTL_DIR)/fp16_reciprocal.sv \
   $(RTL_DIR)/flash_attention_core.sv \
   $(RTL_DIR)/causal_mask.sv \
   $(RTL_DIR)/multi_head_scheduler.sv \
