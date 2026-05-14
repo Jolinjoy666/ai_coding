@@ -19,13 +19,13 @@
 ## Current workflow stage
 
 ```text
-requirements_ready
+architecture_selected
 ```
 
 ## Next recommended stage
 
 ```text
-architecture_option_generation
+micro_arch_design
 ```
 
 ## AI operating rules for this project
