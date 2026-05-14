@@ -1,0 +1,68 @@
+// UART Monitor Template
+// This template implements a UVM monitor for UART interface
+// Based on Uart_Controller project implementation
+
+class uart_monitor extends uvm_monitor;
+  `uvm_component_utils(uart_monitor)
+
+  virtual uart_if vif;          // Virtual interface
+  int baud_rate = 115200;       // Baud rate (customize for your design)
+  
+  uvm_analysis_port #(uart_transaction) ap;  // Analysis port
+  
+  // Coverage statistics
+  int unsigned rx_byte_count;
+  int unsigned tx_byte_count;
+  int unsigned framing_error_count;
+
+  function new(string name, uvm_component parent);
+    super.new(name, parent);
+  endfunction
+
+  function void build_phase(uvm_phase phase);
+    super.build_phase(phase);
+    ap = new("ap", this);
+    if (!uvm_config_db#(virtual uart_if)::get(this, "", "vif", vif))
+      `uvm_fatal("NOVIF", "Virtual interface not set for uart_monitor")
+  endfunction
+
+  task run_phase(uvm_phase phase);
+    real bit_time;
+    bit_time = 1.0 / baud_rate * 1e9;
+    
+    forever begin
+      uart_transaction txn;
+      txn = uart_transaction::type_id::create("txn");
+      
+      // Wait for start bit (falling edge)
+      @(negedge vif.rx_i);
+      
+      // Sample at bit center
+      #(bit_time / 2);
+      
+      // Verify start bit
+      if (vif.rx_i != 1'b0) begin
+        `uvm_warning("UART_MON", "Invalid start bit detected")
+        continue;
+      end
+      
+      // Sample data bits
+      for (int i = 0; i < 8; i++) begin
+        #(bit_time);
+        txn.data[i] = vif.rx_i;
+      end
+      
+      // Sample stop bit
+      #(bit_time);
+      if (vif.rx_i != 1'b1) begin
+        txn.framing_error = 1'b1;
+        framing_error_count++;
+        `uvm_warning("UART_MON", $sformatf("Framing error detected for data %02h", txn.data))
+      end
+      
+      rx_byte_count++;
+      `uvm_info("UART_MON", $sformatf("Received: %s", txn.convert2string()), UVM_HIGH)
+      ap.write(txn);
+    end
+  endtask
+endclass

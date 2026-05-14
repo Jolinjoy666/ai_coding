@@ -1,0 +1,53 @@
+// Synchronous FIFO Template
+// This template implements a parameterized synchronous FIFO
+// Based on Uart_Controller project implementation
+
+module byte_fifo
+  #(parameter int DATA_WIDTH = 8,      // Data width
+    parameter int DEPTH      = 32)    // FIFO depth (must be power of 2)
+   (input  logic                  clk,      // System clock
+    input  logic                  rst_n,    // Active-low synchronous reset
+    input  logic                  wr_en,    // Write enable
+    input  logic [DATA_WIDTH-1:0] wr_data,  // Write data
+    input  logic                  rd_en,    // Read enable
+    output logic [DATA_WIDTH-1:0] rd_data,  // Read data
+    output logic                  full,     // FIFO full flag
+    output logic                  empty,    // FIFO empty flag
+    output logic [$clog2(DEPTH):0] level);  // Current fill level
+
+  localparam int ADDR_W = $clog2(DEPTH);
+
+  logic [DATA_WIDTH-1:0] mem [DEPTH];      // Memory array
+  logic [ADDR_W-1:0]     wr_ptr, rd_ptr;  // Write and read pointers
+  logic [ADDR_W:0]       count;            // Item count
+
+  assign full  = (count == DEPTH);
+  assign empty = (count == 0);
+  assign level = count;
+  assign rd_data = mem[rd_ptr];
+
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      wr_ptr <= '0;
+      rd_ptr <= '0;
+      count  <= '0;
+    end else begin
+      // Write operation
+      if (wr_en && !full) begin
+        mem[wr_ptr] <= wr_data;
+        wr_ptr <= (wr_ptr == ADDR_W'(DEPTH-1)) ? '0 : wr_ptr + 1'b1;
+      end
+      // Read operation
+      if (rd_en && !empty) begin
+        rd_ptr <= (rd_ptr == ADDR_W'(DEPTH-1)) ? '0 : rd_ptr + 1'b1;
+      end
+      // Count update
+      case ({wr_en && !full, rd_en && !empty})
+        2'b10:   count <= count + 1'b1;
+        2'b01:   count <= count - 1'b1;
+        default: count <= count;
+      endcase
+    end
+  end
+
+endmodule

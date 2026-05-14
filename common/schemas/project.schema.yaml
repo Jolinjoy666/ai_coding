@@ -46,6 +46,47 @@ fields:
     current: string
     next: string
     end_to_end: path
+  workflow_gates:
+    type: map
+    description: >
+      Per-stage gate definitions. Agent must verify required_outputs exist and
+      required_sections are satisfied before advancing project.status to the
+      next stage. Keys match project.status enum values.
+    keys:
+      initialized:
+        required_outputs: [project.yaml, spec/raw_spec.md, ai/project_context.md]
+        required_checks: []
+      requirements_ready:
+        required_outputs: [spec/requirements.md]
+        required_sections: [confirmed_requirements, open_questions, verification_intent]
+        required_checks: [common/checklists/spec_readiness_checklist.md]
+      architecture_selected:
+        required_outputs: [docs/architecture/selected_arch.md]
+        required_checks: [common/checklists/architecture_review_checklist.md]
+      micro_arch_ready:
+        required_outputs: [docs/micro_arch/micro_architecture.md]
+        required_sections: [module_decomposition, interfaces, fsm, datapath, reset_strategy]
+        required_checks: [common/checklists/micro_arch_review_checklist.md]
+      rtl_in_progress:
+        required_outputs: [rtl/src/]
+        required_conditions:
+          - rtl_generated_reviewed: "All files in rtl/generated/ must be reviewed before promotion to rtl/src/"
+          - no_fatal_lint: "No fatal-severity lint errors"
+          - no_multi_driver: "No multi-driver conflicts"
+        required_checks: [common/checklists/rtl_review_checklist.md]
+      verification_in_progress:
+        required_outputs: [dv/uvm/]
+        required_conditions:
+          - scoreboard_active: "Scoreboard must have non-zero match/mismatch counts"
+          - tests_defined: "At least one directed test per primary operation"
+        required_checks: [common/checklists/uvm_environment_review_checklist.md]
+      signoff_ready:
+        required_outputs: [reports/signoff/]
+        required_conditions:
+          - all_tests_pass: "All regression tests pass"
+          - static_checks_documented: "Lint/CDC/RDC status documented"
+          - waivers_justified: "All waivers have rationale"
+        required_checks: [common/checklists/signoff_readiness_checklist.md]
 required:
   - project.name
   - project.type

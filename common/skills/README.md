@@ -19,6 +19,7 @@ Reusable AI skills for local IC design automation.
 
 - `00_spec_intake/project_bootstrap_from_spec/`: initialize a new project directory from raw user spec.
 - `00_spec_intake/spec_to_requirements/`: convert raw user spec into structured requirements.
+- `00_spec_intake/doc_to_markdown/`: extract text from images or PDFs and convert to Markdown format.
 - `10_architecture_exploration/architecture_option_generation/`: generate and compare architecture options.
 - `20_micro_arch_design/micro_arch_design/`: create RTL-ready micro-architecture.
 - `30_rtl_generation/digital_ic_rtl_design/`: generate, modify, and review synthesizable digital IC RTL.

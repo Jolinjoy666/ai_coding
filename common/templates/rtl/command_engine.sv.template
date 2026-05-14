@@ -1,0 +1,317 @@
+// Command Engine Template
+// This template implements a command execution engine with shared resource access
+// Based on Uart_Controller project implementation
+
+module command_engine
+  #(parameter int MAX_PAYLOAD_BYTES = 16,      // Maximum payload size
+    parameter int MEM_ADDR_WIDTH    = 4)       // Memory address width
+   (input  logic       clk,                   // System clock
+    input  logic       rst_n,                 // Active-low synchronous reset
+    input  logic       cfg_enable,            // Configuration enable
+    // Decoded command input
+    input  logic       cmd_valid,             // Command valid
+    output logic       cmd_ready,             // Ready to accept command
+    input  logic [7:0] cmd_seq,               // Sequence number
+    input  logic [7:0] cmd_opcode,            // Command opcode
+    input  logic [4:0] cmd_len,               // Payload length
+    input  logic [MAX_PAYLOAD_BYTES*8-1:0] cmd_payload, // Payload data
+    input  logic [7:0] cmd_status,            // Status from parser
+    input  logic       cmd_from_parser_error, // Parser error flag
+    // Shared resource request
+    output logic       req_valid,             // Request valid
+    input  logic       req_ready,             // Request ready
+    output logic       req_write,             // Write request
+    output logic [7:0] req_addr,              // Request address
+    output logic [31:0] req_wdata,            // Write data
+    output logic [3:0]  req_wstrb,            // Write strobe
+    // Shared resource response
+    input  logic       resp_valid,            // Response valid
+    input  logic [7:0] resp_status,           // Response status
+    input  logic [31:0] resp_rdata,           // Read data
+    // Response output
+    output logic       rsp_valid,             // Response valid
+    input  logic       rsp_ready,             // Response ready
+    output logic [7:0] rsp_seq_echo,          // Sequence echo
+    output logic [7:0] rsp_cmd_echo,          // Command echo
+    output logic [7:0] rsp_status,            // Response status
+    output logic [4:0] rsp_len,               // Response length
+    output logic [MAX_PAYLOAD_BYTES*8-1:0] rsp_payload, // Response payload
+    // Status signals
+    output logic       cmd_busy,              // Command busy
+    output logic       rx_count_inc,          // RX count increment
+    output logic       error_count_inc,       // Error count increment
+    output logic [7:0] last_status);          // Last status
+
+  // Command opcodes (customize for your protocol)
+  localparam logic [7:0] CMD_PING         = 8'h01;
+  localparam logic [7:0] CMD_REG_READ     = 8'h10;
+  localparam logic [7:0] CMD_REG_WRITE    = 8'h11;
+  localparam logic [7:0] CMD_MEM_READ     = 8'h20;
+  localparam logic [7:0] CMD_MEM_WRITE    = 8'h21;
+  localparam logic [7:0] CMD_STATUS_READ  = 8'h30;
+  localparam logic [7:0] CMD_FIFO_STATUS  = 8'h31;
+  localparam logic [7:0] CMD_LOOPBACK_CFG = 8'h40;
+  localparam logic [7:0] CMD_SOFT_RESET   = 8'h7E;
+
+  // Status codes (customize for your protocol)
+  localparam logic [7:0] STATUS_OK              = 8'h00;
+  localparam logic [7:0] STATUS_CRC_ERROR       = 8'h01;
+  localparam logic [7:0] STATUS_LENGTH_ERROR    = 8'h02;
+  localparam logic [7:0] STATUS_UNSUPPORTED_CMD = 8'h03;
+  localparam logic [7:0] STATUS_ADDR_ERROR      = 8'h04;
+  localparam logic [7:0] STATUS_BUSY_ERROR      = 8'h05;
+
+  typedef enum logic [3:0] {
+    ST_IDLE,          // Waiting for command
+    ST_PARSER_ERROR,  // Handling parser error
+    ST_EXECUTE,       // Executing command
+    ST_WAIT_RESP,     // Waiting for resource response
+    ST_RESPONSE       // Sending response
+  } state_t;
+
+  state_t state;
+  logic [7:0] seq_echo, cmd_echo;
+  logic [7:0] status_reg;
+  logic [4:0] resp_len_reg;
+  logic [MAX_PAYLOAD_BYTES*8-1:0] resp_payload_reg;
+  logic [7:0] last_status_reg;
+
+  assign cmd_busy = (state != ST_IDLE);
+  assign last_status = last_status_reg;
+
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      state           <= ST_IDLE;
+      seq_echo        <= '0;
+      cmd_echo        <= '0;
+      status_reg      <= '0;
+      resp_len_reg    <= '0;
+      resp_payload_reg <= '0;
+      last_status_reg <= '0;
+      req_valid       <= 1'b0;
+      req_write       <= 1'b0;
+      req_addr        <= '0;
+      req_wdata       <= '0;
+      req_wstrb       <= '0;
+      rsp_valid       <= 1'b0;
+      rx_count_inc    <= 1'b0;
+      error_count_inc <= 1'b0;
+    end else begin
+      rsp_valid    <= 1'b0;
+      rx_count_inc <= 1'b0;
+      error_count_inc <= 1'b0;
+
+      case (state)
+        ST_IDLE: begin
+          if (cmd_valid && cfg_enable) begin
+            seq_echo <= cmd_seq;
+            cmd_echo <= cmd_opcode;
+            if (cmd_from_parser_error) begin
+              state      <= ST_PARSER_ERROR;
+              status_reg <= cmd_status;
+            end else begin
+              state <= ST_EXECUTE;
+            end
+          end
+        end
+
+        ST_PARSER_ERROR: begin
+          resp_len_reg    <= '0;
+          resp_payload_reg <= '0;
+          status_reg      <= status_reg;
+          last_status_reg <= status_reg;
+          error_count_inc <= 1'b1;
+          state           <= ST_RESPONSE;
+        end
+
+        ST_EXECUTE: begin
+          case (cmd_opcode)
+            CMD_PING: begin
+              status_reg      <= STATUS_OK;
+              resp_len_reg    <= 5'd1;
+              resp_payload_reg <= {((MAX_PAYLOAD_BYTES*8)-8)'(0), 8'hAA};
+              last_status_reg <= STATUS_OK;
+              rx_count_inc    <= 1'b1;
+              state           <= ST_RESPONSE;
+            end
+
+            CMD_REG_READ: begin
+              if (cmd_len != 5'd1) begin
+                status_reg      <= STATUS_LENGTH_ERROR;
+                resp_len_reg    <= '0;
+                resp_payload_reg <= '0;
+                last_status_reg <= STATUS_LENGTH_ERROR;
+                error_count_inc <= 1'b1;
+                state           <= ST_RESPONSE;
+              end else begin
+                req_valid <= 1'b1;
+                req_write <= 1'b0;
+                req_addr  <= cmd_payload[7:0];
+                req_wdata <= '0;
+                req_wstrb <= '0;
+                state     <= ST_WAIT_RESP;
+              end
+            end
+
+            CMD_REG_WRITE: begin
+              if (cmd_len != 5'd2) begin
+                status_reg      <= STATUS_LENGTH_ERROR;
+                resp_len_reg    <= '0;
+                resp_payload_reg <= '0;
+                last_status_reg <= STATUS_LENGTH_ERROR;
+                error_count_inc <= 1'b1;
+                state           <= ST_RESPONSE;
+              end else begin
+                req_valid <= 1'b1;
+                req_write <= 1'b1;
+                req_addr  <= cmd_payload[7:0];
+                req_wdata <= {24'b0, cmd_payload[15:8]};
+                req_wstrb <= 4'b0001;
+                state     <= ST_WAIT_RESP;
+              end
+            end
+
+            CMD_MEM_READ: begin
+              if (cmd_len != 5'd2) begin
+                status_reg      <= STATUS_LENGTH_ERROR;
+                resp_len_reg    <= '0;
+                resp_payload_reg <= '0;
+                last_status_reg <= STATUS_LENGTH_ERROR;
+                error_count_inc <= 1'b1;
+                state           <= ST_RESPONSE;
+              end else begin
+                req_valid <= 1'b1;
+                req_write <= 1'b0;
+                req_addr  <= cmd_payload[7:0];
+                req_wdata <= '0;
+                req_wstrb <= '0;
+                state     <= ST_WAIT_RESP;
+              end
+            end
+
+            CMD_MEM_WRITE: begin
+              if (cmd_len < 5'd2) begin
+                status_reg      <= STATUS_LENGTH_ERROR;
+                resp_len_reg    <= '0;
+                resp_payload_reg <= '0;
+                last_status_reg <= STATUS_LENGTH_ERROR;
+                error_count_inc <= 1'b1;
+                state           <= ST_RESPONSE;
+              end else begin
+                req_valid <= 1'b1;
+                req_write <= 1'b1;
+                req_addr  <= cmd_payload[7:0];
+                req_wdata <= {24'b0, cmd_payload[15:8]};
+                req_wstrb <= 4'b0001;
+                state     <= ST_WAIT_RESP;
+              end
+            end
+
+            CMD_STATUS_READ: begin
+              status_reg      <= STATUS_OK;
+              resp_len_reg    <= 5'd6;
+              resp_payload_reg <= '0; // Filled by top-level
+              last_status_reg <= STATUS_OK;
+              rx_count_inc    <= 1'b1;
+              state           <= ST_RESPONSE;
+            end
+
+            CMD_FIFO_STATUS: begin
+              status_reg      <= STATUS_OK;
+              resp_len_reg    <= 5'd4;
+              resp_payload_reg <= '0; // Filled by top-level
+              last_status_reg <= STATUS_OK;
+              rx_count_inc    <= 1'b1;
+              state           <= ST_RESPONSE;
+            end
+
+            CMD_LOOPBACK_CFG: begin
+              if (cmd_len != 5'd1) begin
+                status_reg      <= STATUS_LENGTH_ERROR;
+                resp_len_reg    <= '0;
+                resp_payload_reg <= '0;
+                last_status_reg <= STATUS_LENGTH_ERROR;
+                error_count_inc <= 1'b1;
+                state           <= ST_RESPONSE;
+              end else begin
+                status_reg      <= STATUS_OK;
+                resp_len_reg    <= '0;
+                resp_payload_reg <= '0;
+                last_status_reg <= STATUS_OK;
+                rx_count_inc    <= 1'b1;
+                state           <= ST_RESPONSE;
+              end
+            end
+
+            CMD_SOFT_RESET: begin
+              if (cmd_len != 5'd2 || cmd_payload[15:0] != 16'hDEAD) begin
+                status_reg      <= STATUS_LENGTH_ERROR;
+                resp_len_reg    <= '0;
+                resp_payload_reg <= '0;
+                last_status_reg <= STATUS_LENGTH_ERROR;
+                error_count_inc <= 1'b1;
+                state           <= ST_RESPONSE;
+              end else begin
+                status_reg      <= STATUS_OK;
+                resp_len_reg    <= '0;
+                resp_payload_reg <= '0;
+                last_status_reg <= STATUS_OK;
+                rx_count_inc    <= 1'b1;
+                state           <= ST_RESPONSE;
+              end
+            end
+
+            default: begin
+              status_reg      <= STATUS_UNSUPPORTED_CMD;
+              resp_len_reg    <= '0;
+              resp_payload_reg <= '0;
+              last_status_reg <= STATUS_UNSUPPORTED_CMD;
+              error_count_inc <= 1'b1;
+              state           <= ST_RESPONSE;
+            end
+          endcase
+        end
+
+        ST_WAIT_RESP: begin
+          if (resp_valid) begin
+            req_valid <= 1'b0;
+            if (resp_status == STATUS_OK) begin
+              status_reg      <= STATUS_OK;
+              last_status_reg <= STATUS_OK;
+              rx_count_inc    <= 1'b1;
+              if (cmd_opcode == CMD_REG_READ || cmd_opcode == CMD_MEM_READ) begin
+                resp_len_reg    <= 5'd1;
+                resp_payload_reg <= {((MAX_PAYLOAD_BYTES*8)-8)'(0), resp_rdata[7:0]};
+              end else begin
+                resp_len_reg    <= '0;
+                resp_payload_reg <= '0;
+              end
+            end else begin
+              status_reg      <= resp_status;
+              last_status_reg <= resp_status;
+              resp_len_reg    <= '0;
+              resp_payload_reg <= '0;
+              error_count_inc <= 1'b1;
+            end
+            state <= ST_RESPONSE;
+          end
+        end
+
+        ST_RESPONSE: begin
+          if (rsp_ready) begin
+            rsp_valid       <= 1'b1;
+            rsp_seq_echo    <= seq_echo;
+            rsp_cmd_echo    <= cmd_echo;
+            rsp_status      <= status_reg;
+            rsp_len         <= resp_len_reg;
+            rsp_payload     <= resp_payload_reg;
+            state           <= ST_IDLE;
+          end
+        end
+
+        default: state <= ST_IDLE;
+      endcase
+    end
+  end
+
+endmodule

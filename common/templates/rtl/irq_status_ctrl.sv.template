@@ -1,0 +1,53 @@
+// IRQ Status Control Template
+// This template implements an IRQ status controller with sticky bits and masking
+// Based on Uart_Controller project implementation
+
+module irq_status_ctrl
+  (input  logic clk,                        // System clock
+   input  logic rst_n,                      // Active-low synchronous reset
+   input  logic soft_reset,                 // Soft reset signal
+   // IRQ source inputs (customize for your design)
+   input  logic cmd_done,                   // Command done
+   input  logic error_seen,                 // Error seen
+   input  logic rx_overflow,                // RX overflow
+   input  logic tx_overflow,                // TX overflow
+   input  logic fifo_watermark,             // FIFO watermark
+   input  logic apb_error,                  // APB error
+   // IRQ control
+   input  logic [7:0] irq_mask,             // IRQ mask
+   input  logic       irq_clear_ext,        // External IRQ clear
+   input  logic       irq_clear_read,       // Read-clear IRQ
+   // IRQ output
+   output logic [7:0] irq_status,           // IRQ status
+   output logic       irq_o);               // IRQ output
+
+  logic [7:0] irq_status_r;
+
+  assign irq_status = irq_status_r;
+  assign irq_o = |(irq_status_r & irq_mask);
+
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      irq_status_r <= '0;
+    end else if (soft_reset) begin
+      irq_status_r <= '0;
+    end else begin
+      // Set sticky bits (customize for your design)
+      if (cmd_done)     irq_status_r[0] <= 1'b1;
+      if (error_seen)   irq_status_r[1] <= 1'b1;
+      if (rx_overflow)  irq_status_r[2] <= 1'b1;
+      if (tx_overflow)  irq_status_r[3] <= 1'b1;
+      if (fifo_watermark) irq_status_r[4] <= 1'b1;
+      if (apb_error)    irq_status_r[5] <= 1'b1;
+
+      // Clear
+      if (irq_clear_ext) begin
+        irq_status_r <= '0;
+      end else if (irq_clear_read) begin
+        // Read-clear: clear after read
+        irq_status_r <= '0;
+      end
+    end
+  end
+
+endmodule

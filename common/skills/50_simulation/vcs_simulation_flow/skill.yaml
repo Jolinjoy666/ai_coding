@@ -61,6 +61,8 @@ references:
     - common/checklists/vcs_flow_review_checklist.md
   workflows:
     - common/workflows/vcs_rtl_uvm_simulation.md
+  schemas:
+    - common/schemas/simulation_result.schema.yaml
 
 quality_gates:
   - compile_and_run_are_separable

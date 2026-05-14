@@ -1,0 +1,174 @@
+// Command Arbiter Template
+// This template implements a command arbiter for shared resource access
+// Based on Uart_Controller project implementation
+
+module command_arbiter
+  (input  logic clk,                        // System clock
+   input  logic rst_n,                      // Active-low synchronous reset
+   // UART command request
+   input  logic       uart_req_valid,       // UART request valid
+   output logic       uart_req_ready,       // UART request ready
+   input  logic       uart_req_write,       // UART write request
+   input  logic [7:0] uart_req_addr,        // UART request address
+   input  logic [31:0] uart_req_wdata,      // UART write data
+   input  logic [3:0]  uart_req_wstrb,      // UART write strobe
+   output logic       uart_resp_valid,      // UART response valid
+   output logic [7:0] uart_resp_status,     // UART response status
+   output logic [31:0] uart_resp_rdata,     // UART read data
+   // APB request
+   input  logic       apb_req_valid,        // APB request valid
+   output logic       apb_req_ready,        // APB request ready
+   input  logic       apb_req_write,        // APB write request
+   input  logic [7:0] apb_req_addr,         // APB request address
+   input  logic [31:0] apb_req_wdata,       // APB write data
+   input  logic [3:0]  apb_req_wstrb,       // APB write strobe
+   input  logic       apb_req_is_mem_debug, // APB memory debug request
+   output logic       apb_resp_valid,       // APB response valid
+   output logic [7:0] apb_resp_status,      // APB response status
+   output logic [31:0] apb_resp_rdata,      // APB read data
+   // Shared resource request
+   output logic       req_valid,            // Shared request valid
+   input  logic       req_ready,            // Shared request ready
+   output logic       req_source,           // Request source (0=UART, 1=APB)
+   output logic       req_write,            // Shared write request
+   output logic [7:0] req_addr,             // Shared request address
+   output logic [31:0] req_wdata,           // Shared write data
+   output logic [3:0]  req_wstrb,           // Shared write strobe
+   // Shared resource response
+   input  logic       resp_valid,           // Shared response valid
+   input  logic [7:0] resp_status,          // Shared response status
+   input  logic [31:0] resp_rdata,          // Shared read data
+   // Busy signal
+   output logic       arbiter_busy);        // Arbiter busy flag
+
+  typedef enum logic [1:0] {
+    ST_IDLE,    // Waiting for request
+    ST_UART,    // Processing UART request
+    ST_APB,     // Processing APB request
+    ST_WAIT     // Wait state
+  } state_t;
+
+  state_t state;
+  logic uart_active;
+  logic apb_pending;
+
+  assign arbiter_busy = (state != ST_IDLE);
+
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      state       <= ST_IDLE;
+      uart_active <= 1'b0;
+      apb_pending <= 1'b0;
+    end else begin
+      case (state)
+        ST_IDLE: begin
+          if (uart_req_valid) begin
+            state       <= ST_UART;
+            uart_active <= 1'b1;
+          end else if (apb_req_valid) begin
+            if (apb_req_is_mem_debug) begin
+              // Memory debug needs arbitration
+              state <= ST_APB;
+            end else begin
+              // Register access can proceed
+              state <= ST_APB;
+            end
+          end
+        end
+
+        ST_UART: begin
+          if (resp_valid) begin
+            uart_active <= 1'b0;
+            if (apb_pending) begin
+              state       <= ST_APB;
+              apb_pending <= 1'b0;
+            end else begin
+              state <= ST_IDLE;
+            end
+          end
+        end
+
+        ST_APB: begin
+          if (resp_valid) begin
+            if (uart_req_valid && !uart_active) begin
+              state       <= ST_UART;
+              uart_active <= 1'b1;
+            end else begin
+              state <= ST_IDLE;
+            end
+          end
+        end
+
+        ST_WAIT: begin
+          state <= ST_IDLE;
+        end
+
+        default: state <= ST_IDLE;
+      endcase
+    end
+  end
+
+  // Request mux
+  always_comb begin
+    req_valid  = 1'b0;
+    req_write  = 1'b0;
+    req_addr   = '0;
+    req_wdata  = '0;
+    req_wstrb  = '0;
+    req_source = 1'b0;
+
+    case (state)
+      ST_UART: begin
+        req_valid  = uart_req_valid && !uart_active;
+        req_write  = uart_req_write;
+        req_addr   = uart_req_addr;
+        req_wdata  = uart_req_wdata;
+        req_wstrb  = uart_req_wstrb;
+        req_source = 1'b0;
+      end
+      ST_APB: begin
+        req_valid  = apb_req_valid;
+        req_write  = apb_req_write;
+        req_addr   = apb_req_addr;
+        req_wdata  = apb_req_wdata;
+        req_wstrb  = apb_req_wstrb;
+        req_source = 1'b1;
+      end
+      default: begin
+        req_valid  = 1'b0;
+        req_write  = 1'b0;
+        req_addr   = '0;
+        req_wdata  = '0;
+        req_wstrb  = '0;
+        req_source = 1'b0;
+      end
+    endcase
+  end
+
+  // Response demux
+  always_comb begin
+    uart_resp_valid  = 1'b0;
+    uart_resp_status = '0;
+    uart_resp_rdata  = '0;
+    apb_resp_valid   = 1'b0;
+    apb_resp_status  = '0;
+    apb_resp_rdata   = '0;
+    uart_req_ready   = 1'b0;
+    apb_req_ready    = 1'b0;
+
+    if (resp_valid) begin
+      if (state == ST_UART || uart_active) begin
+        uart_resp_valid  = 1'b1;
+        uart_resp_status = resp_status;
+        uart_resp_rdata  = resp_rdata;
+        uart_req_ready   = 1'b1;
+      end else if (state == ST_APB) begin
+        apb_resp_valid  = 1'b1;
+        apb_resp_status = resp_status;
+        apb_resp_rdata  = resp_rdata;
+        apb_req_ready   = 1'b1;
+      end
+    end
+  end
+
+endmodule

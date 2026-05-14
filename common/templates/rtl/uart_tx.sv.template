@@ -1,0 +1,81 @@
+// UART Transmitter Template
+// This template implements a standard UART 8-N-1 transmitter
+// Based on Uart_Controller project implementation
+
+module uart_tx
+  #(parameter int DATA_WIDTH = 8)      // Data width (default 8 bits)
+   (input  logic       clk,           // System clock
+    input  logic       rst_n,         // Active-low synchronous reset
+    input  logic       baud_tick,     // Tick at baud rate
+    input  logic       tx_valid,      // Data valid input
+    output logic       tx_ready,      // Ready to accept new data
+    input  logic [7:0] tx_data,       // Data to transmit
+    output logic       tx_out);       // Serial TX output
+
+  typedef enum logic [2:0] {
+    ST_IDLE,    // Waiting for data
+    ST_START,   // Transmitting start bit
+    ST_DATA,    // Transmitting data bits
+    ST_STOP,    // Transmitting stop bit
+    ST_DONE     // Transmission complete
+  } state_t;
+
+  state_t state;
+  logic [3:0] bit_cnt;
+  logic [7:0] shift_reg;
+
+  assign tx_ready = (state == ST_IDLE);
+
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      state    <= ST_IDLE;
+      bit_cnt  <= '0;
+      shift_reg <= '0;
+      tx_out   <= 1'b1;  // Idle high
+    end else begin
+      case (state)
+        ST_IDLE: begin
+          tx_out <= 1'b1;  // Idle high
+          if (tx_valid && tx_ready) begin
+            shift_reg <= tx_data;
+            state     <= ST_START;
+          end
+        end
+
+        ST_START: begin
+          if (baud_tick) begin
+            tx_out <= 1'b0;  // Start bit (low)
+            bit_cnt <= '0;
+            state   <= ST_DATA;
+          end
+        end
+
+        ST_DATA: begin
+          if (baud_tick) begin
+            tx_out <= shift_reg[0];  // LSB first
+            shift_reg <= {1'b0, shift_reg[7:1]};
+            if (bit_cnt == DATA_WIDTH - 1) begin
+              state <= ST_STOP;
+            end else begin
+              bit_cnt <= bit_cnt + 1'b1;
+            end
+          end
+        end
+
+        ST_STOP: begin
+          if (baud_tick) begin
+            tx_out <= 1'b1;  // Stop bit (high)
+            state  <= ST_DONE;
+          end
+        end
+
+        ST_DONE: begin
+          state <= ST_IDLE;
+        end
+
+        default: state <= ST_IDLE;
+      endcase
+    end
+  end
+
+endmodule

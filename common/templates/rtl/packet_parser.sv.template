@@ -1,0 +1,239 @@
+// Packet Parser Template
+// This template implements a generic packet parser with CRC validation
+// Based on Uart_Controller project implementation
+
+module packet_parser
+  #(parameter int MAX_PAYLOAD_BYTES = 16,      // Maximum payload size
+    parameter int TIMEOUT_BITS      = 16,     // Timeout counter width
+    parameter int INTER_BYTE_TIMEOUT = 50_000) // Inter-byte timeout cycles
+   (input  logic       clk,                  // System clock
+    input  logic       rst_n,                // Active-low synchronous reset
+    input  logic       cfg_enable,           // Configuration enable
+    input  logic       timeout_enable,       // Timeout enable
+    // Byte stream input
+    input  logic [7:0] rx_byte,              // Received byte
+    input  logic       rx_valid,             // Byte valid
+    output logic       rx_ready,             // Ready to receive
+    // Decoded command output
+    output logic       cmd_valid,            // Command valid
+    input  logic       cmd_ready,            // Command ready
+    output logic [7:0] cmd_seq,              // Sequence number
+    output logic [7:0] cmd_opcode,           // Command opcode
+    output logic [4:0] cmd_len,              // Payload length
+    output logic [MAX_PAYLOAD_BYTES*8-1:0] cmd_payload, // Payload data
+    output logic [7:0] cmd_status,           // Status code
+    output logic       cmd_from_parser_error, // Error flag
+    // Error signals
+    output logic       error_strobe,         // Error pulse
+    output logic [7:0] error_status);        // Error status
+
+  typedef enum logic [3:0] {
+    ST_IDLE,      // Waiting for start byte
+    ST_SEQ,       // Receiving sequence number
+    ST_CMD,       // Receiving command opcode
+    ST_LEN,       // Receiving payload length
+    ST_PAYLOAD,   // Receiving payload data
+    ST_CRC,       // Receiving CRC
+    ST_END,       // Receiving end byte
+    ST_ERROR,     // Error state
+    ST_DONE       // Command complete
+  } state_t;
+
+  state_t state, return_state;
+  logic [7:0] seq_reg, cmd_reg;
+  logic [4:0] len_reg, byte_cnt;
+  logic [MAX_PAYLOAD_BYTES*8-1:0] payload_reg;
+  logic [7:0] crc_calc, crc_received;
+  logic [7:0] error_status_reg;
+  logic error_flag;
+
+  // CRC calculator instance
+  logic       crc_init, crc_valid;
+  logic [7:0] crc_data_in, crc_out;
+
+  crc8_stream u_crc (
+    .clk      (clk),
+    .rst_n    (rst_n),
+    .init     (crc_init),
+    .valid    (crc_valid),
+    .data_in  (crc_data_in),
+    .crc_out  (crc_out)
+  );
+
+  // Timeout counter
+  logic [TIMEOUT_BITS-1:0] timeout_cnt;
+  logic timeout_expired;
+
+  assign timeout_expired = timeout_enable && (timeout_cnt == INTER_BYTE_TIMEOUT - 1);
+
+  // Packet constants (customize for your protocol)
+  localparam logic [7:0] START_BYTE = 8'hA5;
+  localparam logic [7:0] END_BYTE   = 8'h5A;
+
+  assign rx_ready = (state != ST_ERROR) && (state != ST_DONE) && cfg_enable;
+  assign cmd_valid = (state == ST_DONE);
+  assign cmd_seq = seq_reg;
+  assign cmd_opcode = cmd_reg;
+  assign cmd_len = len_reg;
+  assign cmd_payload = payload_reg;
+  assign cmd_status = error_status_reg;
+  assign cmd_from_parser_error = error_flag;
+  assign error_strobe = (state == ST_ERROR);
+  assign error_status = error_status_reg;
+
+  always_ff @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      state           <= ST_IDLE;
+      return_state    <= ST_IDLE;
+      seq_reg         <= '0;
+      cmd_reg         <= '0;
+      len_reg         <= '0;
+      byte_cnt        <= '0;
+      payload_reg     <= '0;
+      crc_calc        <= '0;
+      crc_received    <= '0;
+      error_status_reg <= '0;
+      error_flag      <= 1'b0;
+      timeout_cnt     <= '0;
+      crc_init        <= 1'b0;
+      crc_valid       <= 1'b0;
+      crc_data_in     <= '0;
+    end else begin
+      crc_init  <= 1'b0;
+      crc_valid <= 1'b0;
+
+      // Timeout counter
+      if (state == ST_IDLE || (rx_valid && rx_ready)) begin
+        timeout_cnt <= '0;
+      end else if (state != ST_ERROR && state != ST_DONE) begin
+        if (timeout_cnt < INTER_BYTE_TIMEOUT - 1)
+          timeout_cnt <= timeout_cnt + 1'b1;
+      end
+
+      // cfg_enable clears parser state
+      if (!cfg_enable) begin
+        state <= ST_IDLE;
+      end else begin
+        case (state)
+          ST_IDLE: begin
+            error_flag <= 1'b0;
+            if (rx_valid && rx_ready) begin
+              if (rx_byte == START_BYTE) begin
+                state    <= ST_SEQ;
+                crc_init <= 1'b1;
+              end
+            end
+          end
+
+          ST_SEQ: begin
+            if (timeout_expired) begin
+              error_status_reg <= 8'h06; // TIMEOUT_ERROR
+              state <= ST_ERROR;
+            end else if (rx_valid && rx_ready) begin
+              seq_reg     <= rx_byte;
+              crc_valid   <= 1'b1;
+              crc_data_in <= rx_byte;
+              state       <= ST_CMD;
+            end
+          end
+
+          ST_CMD: begin
+            if (timeout_expired) begin
+              error_status_reg <= 8'h06;
+              state <= ST_ERROR;
+            end else if (rx_valid && rx_ready) begin
+              cmd_reg     <= rx_byte;
+              crc_valid   <= 1'b1;
+              crc_data_in <= rx_byte;
+              state       <= ST_LEN;
+            end
+          end
+
+          ST_LEN: begin
+            if (timeout_expired) begin
+              error_status_reg <= 8'h06;
+              state <= ST_ERROR;
+            end else if (rx_valid && rx_ready) begin
+              crc_valid   <= 1'b1;
+              crc_data_in <= rx_byte;
+              if (rx_byte > MAX_PAYLOAD_BYTES[7:0]) begin
+                error_status_reg <= 8'h02; // LENGTH_ERROR
+                state <= ST_ERROR;
+              end else begin
+                len_reg   <= rx_byte[4:0];
+                byte_cnt  <= '0;
+                if (rx_byte == 0) begin
+                  state <= ST_CRC;
+                end else begin
+                  state <= ST_PAYLOAD;
+                end
+              end
+            end
+          end
+
+          ST_PAYLOAD: begin
+            if (timeout_expired) begin
+              error_status_reg <= 8'h06;
+              state <= ST_ERROR;
+            end else if (rx_valid && rx_ready) begin
+              payload_reg[byte_cnt*8 +: 8] <= rx_byte;
+              crc_valid   <= 1'b1;
+              crc_data_in <= rx_byte;
+              if (byte_cnt == len_reg - 1) begin
+                state <= ST_CRC;
+              end else begin
+                byte_cnt <= byte_cnt + 1'b1;
+              end
+            end
+          end
+
+          ST_CRC: begin
+            if (timeout_expired) begin
+              error_status_reg <= 8'h06;
+              state <= ST_ERROR;
+            end else if (rx_valid && rx_ready) begin
+              crc_received <= rx_byte;
+              crc_calc     <= crc_out;
+              state        <= ST_END;
+            end
+          end
+
+          ST_END: begin
+            if (timeout_expired) begin
+              error_status_reg <= 8'h06;
+              state <= ST_ERROR;
+            end else if (rx_valid && rx_ready) begin
+              if (rx_byte != END_BYTE) begin
+                error_status_reg <= 8'h02; // LENGTH_ERROR
+                error_flag <= 1'b1;
+                state <= ST_DONE;
+              end else if (crc_received != crc_calc) begin
+                error_status_reg <= 8'h01; // CRC_ERROR
+                error_flag <= 1'b1;
+                state <= ST_DONE;
+              end else begin
+                error_status_reg <= 8'h00; // OK
+                error_flag <= 1'b0;
+                state <= ST_DONE;
+              end
+            end
+          end
+
+          ST_ERROR: begin
+            error_flag <= 1'b1;
+            state <= ST_DONE;
+          end
+
+          ST_DONE: begin
+            if (cmd_ready) begin
+              state <= ST_IDLE;
+            end
+          end
+
+          default: state <= ST_IDLE;
+        endcase
+      end
+    end
+  end
+
+endmodule

@@ -7,3 +7,7 @@
 5. Run wave/debug simulation only when needed.
 6. Save logs, waves, commands, and results under `sim/`.
 7. If failures occur, invoke regression/debug skills.
+8. Update `ai/project_context.md`:
+    - Set `current_workflow_stage` to `verification_in_progress` after first successful simulation.
+    - Set `next_recommended_stage` to `uvm_env_generation`.
+    - Record simulation pass/fail status and key observations.

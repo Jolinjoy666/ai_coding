@@ -1,0 +1,52 @@
+// UART Driver Template
+// This template implements a UVM driver for UART interface
+// Based on Uart_Controller project implementation
+
+class uart_driver extends uvm_driver #(uart_transaction);
+  `uvm_component_utils(uart_driver)
+
+  virtual uart_if vif;          // Virtual interface
+  int baud_rate = 115200;       // Baud rate (customize for your design)
+
+  function new(string name, uvm_component parent);
+    super.new(name, parent);
+  endfunction
+
+  function void build_phase(uvm_phase phase);
+    super.build_phase(phase);
+    if (!uvm_config_db#(virtual uart_if)::get(this, "", "vif", vif))
+      `uvm_fatal("NOVIF", "Virtual interface not set for uart_driver")
+  endfunction
+
+  task run_phase(uvm_phase phase);
+    uart_transaction txn;
+    real bit_time;
+    
+    bit_time = 1.0 / baud_rate * 1e9; // in ns
+    
+    // Initialize
+    vif.rx_i <= 1'b1; // Idle high
+    
+    forever begin
+      seq_item_port.get_next_item(txn);
+      drive_byte(txn, bit_time);
+      seq_item_port.item_done();
+    end
+  endtask
+
+  task drive_byte(uart_transaction txn, real bit_time);
+    // Start bit
+    vif.rx_i <= 1'b0;
+    #(bit_time);
+    
+    // Data bits (LSB first)
+    for (int i = 0; i < 8; i++) begin
+      vif.rx_i <= txn.data[i];
+      #(bit_time);
+    end
+    
+    // Stop bit
+    vif.rx_i <= 1'b1;
+    #(bit_time);
+  endtask
+endclass

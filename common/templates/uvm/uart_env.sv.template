@@ -1,0 +1,31 @@
+// UART Environment Template
+// This template implements a UVM environment for UART verification
+// Based on Uart_Controller project implementation
+
+class uart_env extends uvm_env;
+  `uvm_component_utils(uart_env)
+
+  uart_agent    uart_agt;
+  apb_agent     apb_agt;
+  uart_scoreboard scb;
+
+  function new(string name, uvm_component parent);
+    super.new(name, parent);
+  endfunction
+
+  function void build_phase(uvm_phase phase);
+    super.build_phase(phase);
+    
+    uart_agt = uart_agent::type_id::create("uart_agt", this);
+    apb_agt  = apb_agent::type_id::create("apb_agt", this);
+    scb      = uart_scoreboard::type_id::create("scb", this);
+  endfunction
+
+  function void connect_phase(uvm_phase phase);
+    super.connect_phase(phase);
+    
+    // Connect monitor analysis ports to scoreboard
+    uart_agt.monitor.ap.connect(scb.uart_imp);
+    apb_agt.monitor.ap.connect(scb.apb_imp);
+  endfunction
+endclass

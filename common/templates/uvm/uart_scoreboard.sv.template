@@ -1,0 +1,128 @@
+// UART Scoreboard Template
+// This template implements a UVM scoreboard for UART verification
+// Based on Uart_Controller project implementation
+
+class uart_scoreboard extends uvm_scoreboard;
+  `uvm_component_utils(uart_scoreboard)
+
+  // Analysis implementations for different transaction types
+  uvm_analysis_imp_uart #(uart_transaction, uart_scoreboard) uart_imp;
+  uvm_analysis_imp_apb #(apb_transaction, uart_scoreboard) apb_imp;
+
+  // Expected response queue
+  uart_transaction expected_response_q[$];
+  
+  // Statistics
+  int unsigned total_uart_tx;
+  int unsigned total_uart_rx;
+  int unsigned total_apb_ops;
+  int unsigned match_count;
+  int unsigned mismatch_count;
+  int unsigned error_count;
+
+  // Register map shadow (customize for your design)
+  bit [7:0] ctrl_reg;
+  bit [7:0] irq_mask_reg;
+  bit [7:0] fifo_watermark_reg;
+  bit [7:0] loopback_ctrl_reg;
+
+  function new(string name, uvm_component parent);
+    super.new(name, parent);
+  endfunction
+
+  function void build_phase(uvm_phase phase);
+    super.build_phase(phase);
+    uart_imp = new("uart_imp", this);
+    apb_imp = new("apb_imp", this);
+    
+    // Initialize registers to reset values (customize for your design)
+    ctrl_reg = 8'h01;
+    irq_mask_reg = 8'h03;
+    fifo_watermark_reg = 8'h10;
+    loopback_ctrl_reg = 8'h00;
+  endfunction
+
+  // Write implementation for UART transactions
+  virtual function void write_uart(uart_transaction txn);
+    total_uart_tx++;
+    `uvm_info("SCB", $sformatf("UART TX: %s", txn.convert2string()), UVM_HIGH)
+    
+    // Check against expected if available
+    if (expected_response_q.size() > 0) begin
+      uart_transaction expected;
+      expected = expected_response_q.pop_front();
+      if (txn.data == expected.data) begin
+        match_count++;
+        `uvm_info("SCB", $sformatf("MATCH: TX data=%02h", txn.data), UVM_HIGH)
+      end else begin
+        mismatch_count++;
+        `uvm_error("SCB", $sformatf("MISMATCH: expected=%02h actual=%02h", expected.data, txn.data))
+      end
+    end
+    
+    if (txn.framing_error) begin
+      error_count++;
+    end
+  endfunction
+
+  // Write implementation for APB transactions
+  virtual function void write_apb(apb_transaction txn);
+    total_apb_ops++;
+    `uvm_info("SCB", $sformatf("APB: %s", txn.convert2string()), UVM_HIGH)
+    
+    // Update register shadow for writes (customize for your design)
+    if (txn.write) begin
+      case (txn.addr)
+        8'h00: ctrl_reg = txn.wdata[7:0];
+        8'h02: irq_mask_reg = txn.wdata[7:0];
+        8'h0A: fifo_watermark_reg = txn.wdata[7:0];
+        8'h0B: loopback_ctrl_reg = txn.wdata[7:0];
+      endcase
+    end
+    
+    if (txn.slverr) begin
+      error_count++;
+      `uvm_warning("SCB", $sformatf("APB SLVERR at addr=%02h", txn.addr))
+    end
+  endfunction
+
+  // Generate expected response for a command
+  function void generate_expected_response(bit [7:0] seq, bit [7:0] cmd, bit [7:0] status);
+    uart_transaction rsp;
+    // Response format: START(0xC3), SEQ_ECHO, CMD_ECHO, STATUS, LEN, PAYLOAD, CRC, END(0x3C)
+    
+    // Push expected response bytes to queue
+    rsp = uart_transaction::type_id::create("rsp");
+    rsp.data = 8'hC3; // START
+    expected_response_q.push_back(rsp);
+    
+    rsp = uart_transaction::type_id::create("rsp");
+    rsp.data = seq; // SEQ_ECHO
+    expected_response_q.push_back(rsp);
+    
+    rsp = uart_transaction::type_id::create("rsp");
+    rsp.data = cmd; // CMD_ECHO
+    expected_response_q.push_back(rsp);
+    
+    rsp = uart_transaction::type_id::create("rsp");
+    rsp.data = status; // STATUS
+    expected_response_q.push_back(rsp);
+  endfunction
+
+  function void report_phase(uvm_phase phase);
+    super.report_phase(phase);
+    `uvm_info("SCB", "=== Scoreboard Report ===", UVM_LOW)
+    `uvm_info("SCB", $sformatf("Total UART TX bytes: %0d", total_uart_tx), UVM_LOW)
+    `uvm_info("SCB", $sformatf("Total UART RX bytes: %0d", total_uart_rx), UVM_LOW)
+    `uvm_info("SCB", $sformatf("Total APB operations: %0d", total_apb_ops), UVM_LOW)
+    `uvm_info("SCB", $sformatf("Match count: %0d", match_count), UVM_LOW)
+    `uvm_info("SCB", $sformatf("Mismatch count: %0d", mismatch_count), UVM_LOW)
+    `uvm_info("SCB", $sformatf("Error count: %0d", error_count), UVM_LOW)
+    
+    if (mismatch_count == 0 && error_count == 0) begin
+      `uvm_info("SCB", "SCOREBOARD PASSED", UVM_LOW)
+    end else begin
+      `uvm_error("SCB", "SCOREBOARD FAILED")
+    end
+  endfunction
+endclass

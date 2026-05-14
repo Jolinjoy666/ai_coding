@@ -7,21 +7,25 @@ Run a complete local AI-assisted digital IC design loop from raw user spec to si
 ## Entry modes
 
 - If no project exists yet, start with `common/workflows/project_bootstrap_from_spec.md`.
-- If a project already exists and has `spec/raw_spec.md`, continue with `common/workflows/spec_to_architecture.md`.
+- If a project already exists and has `spec/raw_spec.md`, continue with `common/workflows/spec_to_requirements.md`.
 
 ## Flow
 
-1. Use `common/skills/00_spec_intake/project_bootstrap_from_spec/` to initialize the project environment from raw spec when needed.
-2. Use `common/skills/00_spec_intake/spec_to_requirements/` to convert raw spec into structured requirements.
-3. Use `common/skills/10_architecture_exploration/architecture_option_generation/` to generate and select architecture.
-4. Use `common/skills/20_micro_arch_design/micro_arch_design/` to create implementation-ready micro-architecture.
-5. Use `common/skills/30_rtl_generation/digital_ic_rtl_design/` to generate or modify synthesizable RTL.
-6. Use `common/skills/40_static_checks/rtl_static_check/` and `common/skills/40_static_checks/cdc_rdc_analysis/` for static review.
-7. Use `common/skills/50_simulation/rtl_simulation_debug/` or `common/skills/50_simulation/vcs_simulation_flow/` for smoke simulation.
-8. Use `common/skills/60_uvm_generation/uvm_env_generation/` to create or update UVM verification.
-9. Use `common/skills/70_regression_debug/regression_failure_analysis/` or `common/skills/70_regression_debug/vcs_regression_debug/` for failures.
-10. Use `common/skills/80_design_refinement/verification_driven_refinement/` or `common/skills/80_design_refinement/ppa_rtl_optimization/` for refinement.
-11. Use `common/skills/90_signoff_package/rtl_signoff_package/` for release packaging.
+| Step | Workflow | Skill |
+|------|----------|-------|
+| 1 | `project_bootstrap_from_spec.md` | `00_spec_intake/project_bootstrap_from_spec/` |
+| 2 | `spec_to_requirements.md` | `00_spec_intake/spec_to_requirements/` |
+| 3 | `requirements_to_architecture.md` | `10_architecture_exploration/architecture_option_generation/` |
+| 4 | `architecture_to_micro_arch.md` | `20_micro_arch_design/micro_arch_design/` |
+| 5 | `micro_arch_to_rtl.md` | `30_rtl_generation/digital_ic_rtl_design/` |
+| 6 | `rtl_static_check.md` | `40_static_checks/rtl_static_check/` + `cdc_rdc_analysis/` |
+| 7 | `rtl_simulation.md` | `50_simulation/rtl_simulation_debug/` or `vcs_simulation_flow/` |
+| 8 | `rtl_to_uvm.md` | `60_uvm_generation/uvm_env_generation/` |
+| 9 | `regression_debug_loop.md` | `70_regression_debug/regression_failure_analysis/` or `vcs_regression_debug/` |
+| 10 | (inline) | `80_design_refinement/verification_driven_refinement/` or `ppa_rtl_optimization/` |
+| 11 | `signoff_package.md` | `90_signoff_package/rtl_signoff_package/` |
+
+Each step must update `ai/project_context.md` before proceeding to the next.
 
 ## Project outputs
 

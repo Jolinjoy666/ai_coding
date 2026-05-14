@@ -36,11 +36,18 @@ quality_gates:
   - pass_fail_criteria_are_defined
   - logs_and_waves_are_preserved
 
+references:
+  schemas:
+    - common/schemas/simulation_result.schema.yaml
+  checklists:
+    - common/checklists/vcs_flow_review_checklist.md
+
 guardrails:
   must_do:
     - isolate the smallest failing case
     - compare DUT, TB, and reference expectations separately
     - recommend rerun commands
+    - record simulation results using simulation_result.schema.yaml format
   must_not:
     - replace UVM closure with smoke tests
     - hide uncertain expected behavior

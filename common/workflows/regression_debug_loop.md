@@ -8,3 +8,7 @@
 6. Rerun targeted tests.
 7. Rerun broader regression after targeted fixes pass.
 8. Review `common/checklists/regression_closure_checklist.md`.
+9. Update `ai/project_context.md`:
+    - Record regression pass/fail status.
+    - Update `open_questions` if new issues discovered.
+    - Set `next_recommended_stage` to `rtl_signoff_package` when all tests pass.

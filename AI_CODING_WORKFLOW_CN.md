@@ -130,7 +130,7 @@ common/skills/00_spec_intake/spec_to_requirements/
 agent 会跳过 bootstrap，直接进入需求提取：
 
 ```text
-common/workflows/spec_to_architecture.md
+common/workflows/spec_to_requirements.md
 common/skills/00_spec_intake/spec_to_requirements/
 ```
 
@@ -174,7 +174,8 @@ agent 会根据任务关键词和当前项目状态选择对应阶段：
 
 ```text
 common/workflows/end_to_end_ic_ai_coding.md
-common/workflows/spec_to_architecture.md
+common/workflows/spec_to_requirements.md
+common/workflows/requirements_to_architecture.md
 common/workflows/micro_arch_to_rtl.md
 common/workflows/regression_debug_loop.md
 ```
@@ -727,3 +728,53 @@ agent 应按如下方式调度：
 ```
 
 这就是当前 `ai_coding` 环境的 agent 调度模型。
+
+## 10. 项目状态机定义
+
+`project.yaml` 中的 `project.status` 字段是一个状态机，agent 必须按以下规则推进。
+
+### 10.1 状态枚举
+
+```text
+initialized
+  → requirements_ready
+    → architecture_selected
+      → micro_arch_ready
+        → rtl_in_progress
+          → verification_in_progress
+            → signoff_ready
+```
+
+### 10.2 状态转换规则
+
+| 当前状态 | 转换条件 | 下一状态 | 负责方 |
+|----------|----------|----------|--------|
+| (无) | project_bootstrap 完成 | initialized | bootstrap workflow |
+| initialized | `spec/requirements.md` 存在且通过 spec_readiness_checklist | requirements_ready | spec_to_requirements workflow |
+| requirements_ready | `docs/architecture/selected_arch.md` 存在且通过 architecture_review_checklist | architecture_selected | requirements_to_architecture workflow |
+| architecture_selected | `docs/micro_arch/micro_architecture.md` 存在且通过 micro_arch_review_checklist | micro_arch_ready | architecture_to_micro_arch workflow |
+| micro_arch_ready | 至少一个文件从 `rtl/generated/` 提升到 `rtl/src/` 且通过 rtl_review_checklist | rtl_in_progress | micro_arch_to_rtl workflow |
+| rtl_in_progress | 首次仿真通过（smoke test 或 directed test） | verification_in_progress | rtl_simulation 或 rtl_to_uvm workflow |
+| verification_in_progress | 所有回归测试通过且 signoff checklist 通过 | signoff_ready | signoff_package workflow |
+
+### 10.3 状态同步职责
+
+- **谁更新状态**：每个 workflow 的最后一步必须更新 `ai/project_context.md` 中的 `current_workflow_stage`。
+- **何时更新**：在该 workflow 的所有质量门禁通过后、推荐下一步之前。
+- **降级规则**：如果后续阶段发现上游问题（如 RTL bug 需要改微架构），状态可以降级，但必须记录降级原因。
+- **跳步禁止**：agent 不得跳过中间状态。例如不能从 `initialized` 直接到 `rtl_in_progress`。
+
+### 10.4 agent 入口判断流程
+
+```text
+1. 读取 project.yaml 的 status 字段。
+2. 如果 status 不存在 → 新项目，进入 bootstrap。
+3. 如果 status == initialized → 检查 spec/requirements.md 是否存在。
+   - 存在且完整 → 推进到 requirements_ready。
+   - 不存在 → 进入 spec_to_requirements。
+4. 如果 status == requirements_ready → 检查 docs/architecture/selected_arch.md 是否存在。
+   - 存在 → 推进到 architecture_selected。
+   - 不存在 → 进入 requirements_to_architecture。
+5. 以此类推，按状态机推进。
+6. 如果用户要求跳到特定阶段，检查前置状态是否满足，不满足则拒绝并说明原因。
+```

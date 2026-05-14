@@ -8,7 +8,7 @@ This workflow runs before `spec_to_architecture.md` and before any RTL or DV gen
 
 ## Inputs
 
-- Raw user spec.
+- Raw user spec (text, Markdown, PDF, or image).
 - Optional desired project name.
 - Optional block name.
 - Optional target simulator, such as VCS.
@@ -16,6 +16,7 @@ This workflow runs before `spec_to_architecture.md` and before any RTL or DV gen
 
 ## Steps
 
+0. If the raw spec is a PDF or image file, run `common/skills/00_spec_intake/doc_to_markdown/` to convert it to Markdown first. Use the converted Markdown as the spec input for subsequent steps. Preserve the original PDF/image alongside the Markdown in `spec/`.
 1. Preserve the raw user spec exactly.
 2. Infer a short project name from the spec if the user did not provide one.
 3. Normalize the project name for filesystem safety.
@@ -27,7 +28,11 @@ This workflow runs before `spec_to_architecture.md` and before any RTL or DV gen
 9. Save the raw spec as `<project_name>/spec/raw_spec.md` using `common/templates/project_init/raw_spec.md.template`.
 10. Instantiate `common/templates/project_init/ai_project_context.md.template` as `<project_name>/ai/project_context.md`.
 11. Confirm that `project.yaml` links to `../common` assets.
-12. Recommend `common/workflows/spec_to_architecture.md` as the next workflow.
+12. Recommend `common/workflows/spec_to_requirements.md` as the next workflow.
+13. Update `<project_name>/ai/project_context.md`:
+    - Set `current_workflow_stage` to `initialized`.
+    - Set `next_recommended_stage` to `spec_to_requirements`.
+    - Record any open questions from the spec.
 
 ## Standard directory tree
 
