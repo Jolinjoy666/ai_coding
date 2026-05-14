@@ -19,13 +19,13 @@
 ## Current workflow stage
 
 ```text
-project_bootstrap_from_spec
+requirements_ready
 ```
 
 ## Next recommended stage
 
 ```text
-spec_to_requirements
+architecture_option_generation
 ```
 
 ## AI operating rules for this project
@@ -42,8 +42,16 @@ spec_to_requirements
 
 ## Open questions
 
-- FlashAttention 的 tile 大小如何选择？（与 SRAM 容量和 MAC 阵列规模相关）
-- 数据精度用 INT8 定点还是 FP16 半精度？还是两者都支持？
-- RISC-V 核心是自建还是用开源 IP（如 picorv32）？
-- 是否需要支持多 batch 推理？
-- KV-Cache 管理策略：固定大小还是动态分配？
+- OQ-001: RISC-V 核心选择 picorv32 还是自建？picorv32 不支持 F 扩展（P0）
+- OQ-002: UART 115200 波特率下载 16KB 权重需 ~1.1 秒，是否可接受？（P1）
+- OQ-003: SRAM 宏的具体时序参数（P1）
+- OQ-004: FP16 exp 查表精度是否满足 FlashAttention 数学等价要求？（P0）
+- OQ-005: KV-Cache 管理策略：FIFO 还是 LRU？（P1）
+- OQ-006: 多头并行计算的具体条件（P2）
+- OQ-007: 是否需要 DMA 引擎加速数据搬运？（P1）
+
+## Resolved questions
+
+- 数据精度：已确定 FP16（IEEE 754 半精度）
+- 多 batch：已确定仅支持 batch_size=1
+- FlashAttention 分块：已确定 B_r=B_c=4（入门版默认）
