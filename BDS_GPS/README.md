@@ -1,0 +1,52 @@
+# BDS_GPS
+
+## Purpose
+
+BDS/GPS卫星导航系统C/A码捕获与跟踪Verilog设计
+
+## Status
+
+Initialized from raw user spec.
+
+## Directory layout
+
+- `spec/`: raw spec, structured requirements, assumptions, and open questions.
+- `docs/architecture/`: architecture options and selected architecture.
+- `docs/micro_arch/`: RTL-ready micro-architecture documents.
+- `ai/`: AI-maintained context, decisions, and task notes.
+- `rtl/`: SystemVerilog RTL source, generated drafts, includes, and packages.
+- `dv/`: testbench, UVM environment, tests, reference models, and coverage.
+- `sim/`: simulation Makefiles, filelists, logs, waves, and run directories.
+- `lint/`: lint/static-check setup and reports.
+- `formal/`: formal verification setup and reports.
+- `synth/`: synthesis setup and reports.
+- `tools/`: project-specific helper scripts and wrappers.
+- `reports/`: requirements, architecture, micro-architecture, RTL review, verification, and signoff reports.
+- `build/`: generated build artifacts.
+- `third_party/`: external IP, models, or libraries.
+
+## Common assets
+
+This project uses reusable assets from `../common`:
+
+- `../common/skills`
+- `../common/workflows`
+- `../common/standards`
+- `../common/templates`
+- `../common/checklists`
+- `../common/schemas`
+- `../common/eda_adapters`
+
+## Recommended next step
+
+Run:
+
+```text
+common/skills/00_spec_intake/spec_to_requirements
+```
+
+Then continue with:
+
+```text
+common/workflows/spec_to_architecture.md
+```
