@@ -19,13 +19,13 @@
 ## Current workflow stage
 
 ```text
-micro_arch_ready
+rtl_in_progress
 ```
 
 ## Next recommended stage
 
 ```text
-digital_ic_rtl_design
+rtl_static_check
 ```
 
 ## AI operating rules for this project
