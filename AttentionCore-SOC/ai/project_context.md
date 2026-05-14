@@ -19,13 +19,13 @@
 ## Current workflow stage
 
 ```text
-architecture_selected
+micro_arch_ready
 ```
 
 ## Next recommended stage
 
 ```text
-micro_arch_design
+digital_ic_rtl_design
 ```
 
 ## AI operating rules for this project
@@ -42,16 +42,16 @@ micro_arch_design
 
 ## Open questions
 
-- OQ-001: RISC-V 核心选择 picorv32 还是自建？picorv32 不支持 F 扩展（P0）
-- OQ-002: UART 115200 波特率下载 16KB 权重需 ~1.1 秒，是否可接受？（P1）
+- OQ-001: RISC-V 核心选择 picorv32 还是自建？（P0，微架构阶段需确定）
 - OQ-003: SRAM 宏的具体时序参数（P1）
-- OQ-004: FP16 exp 查表精度是否满足 FlashAttention 数学等价要求？（P0）
-- OQ-005: KV-Cache 管理策略：FIFO 还是 LRU？（P1）
-- OQ-006: 多头并行计算的具体条件（P2）
-- OQ-007: 是否需要 DMA 引擎加速数据搬运？（P1）
+- OQ-004: FP16 exp 查表精度是否满足 FlashAttention 数学等价要求？（P0，需验证 256 条目 LUT）
 
 ## Resolved questions
 
 - 数据精度：已确定 FP16（IEEE 754 半精度）
 - 多 batch：已确定仅支持 batch_size=1
 - FlashAttention 分块：已确定 B_r=B_c=4（入门版默认）
+- OQ-002: UART 115200 波特率可接受（入门版数据量小，权重下载 ~1.1 秒）
+- OQ-005: KV-Cache 管理策略：FIFO，地址递增回绕
+- OQ-006: 多头并行：入门版不采用（选项 C 否决），标准版/增强版可考虑
+- OQ-007: 不需要 DMA：RISC-V 逐字搬运足够（入门版数据量小）

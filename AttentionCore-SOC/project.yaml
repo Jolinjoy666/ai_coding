@@ -1,7 +1,7 @@
 project:
   name: "AttentionCore-SOC"
   type: ic_design
-  status: architecture_selected
+  status: micro_arch_ready
   description: "基于FlashAttention的Transformer自注意力推理加速SOC，含RISC-V控制核、脉动阵列、硬件Softmax/LayerNorm/GELU，支持可配置模型规模"
   created_from: raw_user_spec
 
@@ -44,6 +44,6 @@ common:
   eda_adapters: ../common/eda_adapters
 
 recommended_workflow:
-  current: architecture_option_generation
-  next: micro_arch_design
+  current: micro_arch_design
+  next: digital_ic_rtl_design
   end_to_end: ../common/workflows/end_to_end_ic_ai_coding.md
