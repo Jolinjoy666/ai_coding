@@ -1,0 +1,49 @@
+project:
+  name: "AttentionCore-SOC"
+  type: ic_design
+  status: verification_passed
+  description: "基于FlashAttention的Transformer自注意力推理加速SOC，含RISC-V控制核、脉动阵列、硬件Softmax/LayerNorm/GELU，支持可配置模型规模"
+  created_from: raw_user_spec
+
+metadata:
+  block_name: "attention_core"
+  design_type: "digital_ic"
+  target_language: systemverilog
+  target_simulator: "vcs"
+  owner: "ai_coding_agent"
+
+paths:
+  spec: spec
+  raw_spec: spec/raw_spec.md
+  requirements: spec/requirements.md
+  architecture: docs/architecture
+  micro_architecture: docs/micro_arch
+  ai_context: ai/project_context.md
+  rtl: rtl/src
+  rtl_generated: rtl/generated
+  rtl_include: rtl/include
+  rtl_pkg: rtl/pkg
+  dv: dv
+  simulation: sim
+  lint: lint
+  formal: formal
+  synthesis: synth
+  tools: tools
+  reports: reports
+  build: build
+  third_party: third_party
+
+common:
+  root: ../common
+  skills: ../common/skills
+  workflows: ../common/workflows
+  standards: ../common/standards
+  templates: ../common/templates
+  checklists: ../common/checklists
+  schemas: ../common/schemas
+  eda_adapters: ../common/eda_adapters
+
+recommended_workflow:
+  current: rtl_simulation_debug
+  next: uvm_env_generation
+  end_to_end: ../common/workflows/end_to_end_ic_ai_coding.md
