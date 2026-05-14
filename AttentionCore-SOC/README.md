@@ -10,6 +10,7 @@
 |------|------|------|----------|
 | v0.1 | 2026-05-14 | initialized | 初始版本：项目创建，编写初版设计规格 |
 | v0.2 | 2026-05-14 | rtl_in_progress | RTL生成：完成全部31个SystemVerilog源文件 |
+| v0.3 | 2026-05-14 | verification_passed | 验证通过：修复编译错误，全部测试通过（38项） |
 
 ### v0.1 版本特征
 
@@ -17,6 +18,18 @@
 - 参考 FlashAttention 算法设计硬件加速架构
 - 定义参数化模型规模体系（入门版→标准版→增强版→高性能版）
 - 规划 6 大应用场景（关键词检测、时序异常检测、文本分类、ViT、DNA 分析、手势识别）
+
+### v0.3 版本特征
+
+- 修复 FP16 MAC 时序对齐问题：添加 valid_o_d 延迟一拍对齐 acc_q
+- 修复 SOC 编译错误：attention_engine 多驱动、pipeline_buffer 多驱动、sram_dual_port 多驱动
+- SOC top 添加 test_mode APB 接口，支持测试平台直接访问总线
+- 创建完整验证环境：
+  - FP16 Adder 单元测试（10项通过）
+  - FP16 MAC 单元测试（3项通过）
+  - FP16 MAC Array 4×4 单元测试（9项通过）
+  - SOC 集成测试（19项通过，含SRAM/APB/GPIO/Timer/AttnEngine）
+- 全部 38 项验证测试通过，0 失败
 
 ### v0.2 版本特征
 
@@ -132,5 +145,5 @@ make run UVM_TEST=soc_inference_test SEED=1
 
 ---
 
-版本：v0.2
+版本：v0.3
 最后更新：2026年5月14日

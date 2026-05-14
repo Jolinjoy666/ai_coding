@@ -1,7 +1,7 @@
 project:
   name: "AttentionCore-SOC"
   type: ic_design
-  status: verification_in_progress
+  status: verification_passed
   description: "基于FlashAttention的Transformer自注意力推理加速SOC，含RISC-V控制核、脉动阵列、硬件Softmax/LayerNorm/GELU，支持可配置模型规模"
   created_from: raw_user_spec
 

@@ -19,7 +19,7 @@
 ## Current workflow stage
 
 ```text
-verification_in_progress
+verification_passed
 ```
 
 ## Next recommended stage
