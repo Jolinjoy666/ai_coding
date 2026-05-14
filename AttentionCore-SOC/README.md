@@ -9,6 +9,7 @@
 | 版本 | 日期 | 状态 | 主要变更 |
 |------|------|------|----------|
 | v0.1 | 2026-05-14 | initialized | 初始版本：项目创建，编写初版设计规格 |
+| v0.2 | 2026-05-14 | rtl_in_progress | RTL生成：完成全部31个SystemVerilog源文件 |
 
 ### v0.1 版本特征
 
@@ -16,6 +17,20 @@
 - 参考 FlashAttention 算法设计硬件加速架构
 - 定义参数化模型规模体系（入门版→标准版→增强版→高性能版）
 - 规划 6 大应用场景（关键词检测、时序异常检测、文本分类、ViT、DNA 分析、手势识别）
+
+### v0.2 版本特征
+
+- 完成结构化需求提取（42条确认需求、8条假设、7条开放问题）
+- 完成架构选型：流水线重叠架构（MAC利用率72%，吞吐量19.9K tokens/s）
+- 完成微架构设计：模块分解、接口契约、FSM、数据通路
+- 生成31个SystemVerilog源文件，覆盖全部模块
+- FP16运算单元：adder、multiplier、MAC(3级流水线)、阵列(4×4)
+- FlashAttention核心：分块计算、在线Softmax、因果掩码
+- 加速器：attention_engine、mlp_engine、layernorm_hw、residual_add、gelu_hw
+- 总线：apb_interconnect(10从设备)、ctrl_regs(20个APB寄存器)
+- 外设：uart_top(115200 8N1)、gpio_top(8out/4in)、timer_top
+- 处理器：riscv_core(RV32IMF 2级流水线)
+- 存储：sram_single_port、sram_dual_port
 
 ## 目录结构
 
@@ -117,5 +132,5 @@ make run UVM_TEST=soc_inference_test SEED=1
 
 ---
 
-版本：v0.1
+版本：v0.2
 最后更新：2026年5月14日
