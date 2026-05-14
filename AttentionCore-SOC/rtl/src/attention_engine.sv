@@ -60,6 +60,9 @@ module attention_engine
   logic [15:0] layer_cfg;
   logic [FP16_WIDTH-1:0] scale_factor;
   logic [15:0] tile_cfg;
+  logic [31:0] weight_base;
+  logic [31:0] feature_base;
+  logic [31:0] kvcache_base;
 
   // Status
   logic        status_busy;
@@ -104,6 +107,9 @@ module attention_engine
       layer_cfg    <= '0;
       scale_factor <= 16'h3A00;  // ~0.125 = 1/sqrt(64)
       tile_cfg     <= {TILE_B_R[7:0], TILE_B_C[7:0]};
+      weight_base  <= WEIGHT_BASE;
+      feature_base <= FEATURE_BASE;
+      kvcache_base <= KVCACHE_BASE;
       irq_en       <= '0;
       irq_status   <= '0;
     end else begin
@@ -120,6 +126,9 @@ module attention_engine
           REG_TILE_CFG:       tile_cfg     <= pwdata_i[15:0];
           REG_IRQ_EN:         irq_en       <= pwdata_i[0];
           REG_IRQ_STATUS:     irq_status   <= irq_status & ~pwdata_i[7:0];  // W1C
+          REG_WEIGHT_BASE:    weight_base  <= pwdata_i;
+          REG_FEATURE_BASE:   feature_base <= pwdata_i;
+          REG_KVCACHE_BASE:   kvcache_base <= pwdata_i;
           REG_CTRL: begin
             if (pwdata_i[CTRL_START_BIT]) start <= 1'b1;
             if (pwdata_i[CTRL_ABORT_BIT]) abort <= 1'b1;
@@ -161,6 +170,9 @@ module attention_engine
         REG_CFG_NUM_LAYERS: prdata_o = {16'b0, num_layers};
         REG_CFG_MAC_ROWS:   prdata_o = {28'b0, MAC_ROWS[3:0]};
         REG_CFG_MAC_COLS:   prdata_o = {28'b0, MAC_COLS[3:0]};
+        REG_WEIGHT_BASE:    prdata_o = weight_base;
+        REG_FEATURE_BASE:   prdata_o = feature_base;
+        REG_KVCACHE_BASE:   prdata_o = kvcache_base;
         REG_LAYER_CFG:      prdata_o = {16'b0, layer_cfg};
         REG_TILE_CFG:       prdata_o = {16'b0, tile_cfg};
         REG_SCALE_FACTOR:   prdata_o = {16'b0, scale_factor};

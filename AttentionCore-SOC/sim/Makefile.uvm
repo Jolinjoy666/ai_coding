@@ -1,0 +1,84 @@
+# Makefile for AttentionCore-SOC UVM verification
+# Usage:
+#   make -f Makefile.uvm compile              # Compile
+#   make -f Makefile.uvm run UVM_TEST=<test>  # Compile + run
+#   make -f Makefile.uvm regress TESTS="..." SEEDS="..."  # Regression
+#   make -f Makefile.uvm clean                # Clean build artifacts
+
+SIM          ?= vcs
+UVM_TEST     ?= sram_smoke_test
+SEED         ?= 1
+TOP          ?= uvm_tb_top
+DV_FLIST     ?= filelists/dv.f
+RUN_ROOT     ?= run
+RUN_DIR      ?= $(RUN_ROOT)/$(UVM_TEST)_$(SEED)
+PASS_MARK    ?= TEST_PASS
+VCS_UVM_VER  ?= uvm-1.2
+VCS_TIMESCALE ?= 1ns/1ps
+
+# VCS build options
+VCS_OPTS = -full64 -sverilog \
+  -ntb_opts $(VCS_UVM_VER) \
+  -timescale=$(VCS_TIMESCALE) \
+  -top $(TOP) \
+  -debug_access+all \
+  -cc gcc -cpp g++ -LDFLAGS -Wl,-no-as-needed
+
+# Simulation plusargs
+SIM_PLUSARGS = +UVM_TESTNAME=$(UVM_TEST) +ntb_random_seed=$(SEED) +UVM_NO_RELNOTES
+
+.PHONY: help compile run sim check regress clean
+
+help:
+	@echo "AttentionCore-SOC UVM Makefile"
+	@echo "=============================="
+	@echo "  make -f Makefile.uvm compile                - Compile UVM testbench"
+	@echo "  make -f Makefile.uvm run UVM_TEST=<test>    - Compile and run test"
+	@echo "  make -f Makefile.uvm sim UVM_TEST=<test>    - Alias for run"
+	@echo "  make -f Makefile.uvm regress TESTS=\"...\" SEEDS=\"...\" - Regression"
+	@echo "  make -f Makefile.uvm clean                  - Clean build artifacts"
+	@echo ""
+	@echo "Available tests:"
+	@echo "  sram_smoke_test       - SRAM read/write for all 10 regions"
+	@echo "  reg_access_test       - Control register access verification"
+	@echo "  attn_engine_test      - Attention engine start/status/IRQ"
+	@echo "  gpio_loopback_test    - GPIO output/input loopback"
+	@echo "  timer_test            - Timer enable/count/IRQ"
+	@echo "  irq_test              - IRQ enable/status/clear"
+	@echo "  random_apb_test       - Random APB stress test"
+	@echo "  unmapped_addr_test    - Unmapped address pslverr"
+
+compile:
+	@mkdir -p $(RUN_DIR)
+	vcs $(VCS_OPTS) \
+	  +incdir+../dv/tb \
+	  +incdir+../dv/uvm/agents/apb \
+	  +incdir+../dv/uvm/env \
+	  +incdir+../dv/uvm/scoreboard \
+	  +incdir+../dv/uvm/sequences \
+	  +incdir+../dv/uvm/tests \
+	  -f $(DV_FLIST) \
+	  -o $(RUN_DIR)/simv \
+	  -l $(RUN_DIR)/compile.log
+
+run: compile
+	cd $(RUN_DIR) && ./simv $(SIM_PLUSARGS) -l sim.log
+	@python3 scripts/check_sim_log.py --log $(RUN_DIR)/sim.log --pass-marker $(PASS_MARK)
+	@echo "=== $(UVM_TEST) SEED=$(SEED): PASSED ==="
+
+sim: run
+
+check:
+	@python3 scripts/check_sim_log.py --log $(RUN_DIR)/sim.log --pass-marker $(PASS_MARK)
+
+regress:
+	@for test in $(TESTS); do \
+	  for seed in $(SEEDS); do \
+	    echo "=== Running $$test SEED=$$seed ==="; \
+	    $(MAKE) -f Makefile.uvm run UVM_TEST=$$test SEED=$$seed || exit 1; \
+	  done; \
+	done
+	@echo "=== REGRESSION PASSED ==="
+
+clean:
+	rm -rf $(RUN_ROOT) csrc simv simv.daidir *.daidir *.log *.fsdb *.vcd ucli.key vc_hdrs.h .vlogansetup.args .vlogansetup.args.old

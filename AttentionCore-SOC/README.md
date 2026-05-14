@@ -11,6 +11,7 @@
 | v0.1 | 2026-05-14 | initialized | 初始版本：项目创建，编写初版设计规格 |
 | v0.2 | 2026-05-14 | rtl_in_progress | RTL生成：完成全部31个SystemVerilog源文件 |
 | v0.3 | 2026-05-14 | verification_passed | 验证通过：修复编译错误，全部测试通过（38项） |
+| v0.4 | 2026-05-14 | uvm_verified | UVM验证：构建完整UVM环境，8项UVM测试×3种子=24次回归全部通过 |
 
 ### v0.1 版本特征
 
@@ -30,6 +31,24 @@
   - FP16 MAC Array 4×4 单元测试（9项通过）
   - SOC 集成测试（19项通过，含SRAM/APB/GPIO/Timer/AttnEngine）
 - 全部 38 项验证测试通过，0 失败
+
+### v0.4 版本特征
+
+- 构建完整 UVM 验证环境（基于 Uart_Controller APB agent 复用）
+- APB Agent：32位地址宽度适配，支持 SoC 全地址空间访问
+- Scoreboard：寄存器影子模型 + SRAM 影子模型 + 自动比对
+- 8 项 UVM 测试用例：
+  - sram_smoke_test：10个SRAM区域读写验证
+  - reg_access_test：控制寄存器读写 + 只读 + W1C + auto-clear
+  - attn_engine_test：Attention Engine 启动/状态/中断完整流程
+  - gpio_loopback_test：GPIO 输出/输入回环验证
+  - timer_test：Timer 使能/计数/中断/清除
+  - irq_test：中断使能/状态/清除全流程
+  - random_apb_test：随机APB事务压力测试
+  - unmapped_addr_test：未映射地址 pslverr 验证
+- 回归验证：8测试 × 3种子 = 24次运行，全部通过
+- 修复 RTL bug：attention_engine 缺少 WEIGHT_BASE/FEATURE_BASE/KVCACHE_BASE 读回逻辑
+- 完整 Makefile 支持：compile/run/regress/clean
 
 ### v0.2 版本特征
 
@@ -125,17 +144,17 @@ AttentionCore-SOC/
 ## 快速开始
 
 ```bash
-# 生成 golden model 数据
-cd tools && python generate_golden.py
+# 编译 UVM 测试平台
+cd sim && make -f Makefile.uvm compile
 
-# 编译仿真
-cd sim && make compile
+# 运行单个 UVM 测试
+make -f Makefile.uvm run UVM_TEST=sram_smoke_test SEED=1
 
-# 运行注意力单元验证
-make run UVM_TEST=attention_unit_test SEED=1
+# 运行 UVM 回归测试（8测试×3种子）
+make -f Makefile.uvm regress TESTS="sram_smoke_test reg_access_test attn_engine_test gpio_loopback_test timer_test irq_test random_apb_test unmapped_addr_test" SEEDS="1 2 3"
 
-# 运行全芯片推理验证
-make run UVM_TEST=soc_inference_test SEED=1
+# 运行 directed 测试
+make test_all
 ```
 
 ## 文档
@@ -145,5 +164,5 @@ make run UVM_TEST=soc_inference_test SEED=1
 
 ---
 
-版本：v0.3
+版本：v0.4
 最后更新：2026年5月14日
