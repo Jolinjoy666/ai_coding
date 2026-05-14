@@ -88,6 +88,7 @@ module attention_engine
   logic        fa_start;
   logic        fa_done;
   logic        fa_busy;
+  logic        fa_mac_clear;
 
   // MAC array signals
   logic [MAC_ROWS-1:0][FP16_WIDTH-1:0] mac_a;
@@ -200,7 +201,10 @@ module attention_engine
     .irq_o      ()
   );
 
-  // FlashAttention core
+  // FlashAttention core - K and V interface signals
+  logic        fa_k_rd_en, fa_v_rd_en;
+  logic [KVCACHE_ADDR_W-1:0] fa_k_rd_addr, fa_v_rd_addr;
+
   flash_attention_core u_fa (
     .clk            (clk),
     .rst_n          (rst_n),
@@ -212,31 +216,36 @@ module attention_engine
     .d_model_i      (d_model),
     .n_head_i       (n_head),
     .scale_factor_i (scale_factor),
-    .q_rd_en_o      (),
-    .q_rd_addr_o    (),
-    .q_rd_data_i    ('0),
-    .k_rd_en_o      (),
-    .k_rd_addr_o    (),
-    .k_rd_data_i    ('0),
-    .v_rd_en_o      (),
-    .v_rd_addr_o    (),
-    .v_rd_data_i    ('0),
-    .out_wr_en_o    (),
-    .out_wr_addr_o  (),
-    .out_wr_data_o  (),
+    .q_rd_en_o      (feat_rd_en_o),
+    .q_rd_addr_o    (feat_rd_addr_o),
+    .q_rd_data_i    (feat_rd_data_i),
+    .k_rd_en_o      (fa_k_rd_en),
+    .k_rd_addr_o    (fa_k_rd_addr),
+    .k_rd_data_i    (kv_rd_data_i),
+    .v_rd_en_o      (fa_v_rd_en),
+    .v_rd_addr_o    (fa_v_rd_addr),
+    .v_rd_data_i    (kv_rd_data_i),
+    .out_wr_en_o    (feat_wr_en_o),
+    .out_wr_addr_o  (feat_wr_addr_o),
+    .out_wr_data_o  (feat_wr_data_o),
     .mac_a_o        (mac_a),
     .mac_b_o        (mac_b),
     .mac_valid_o    (mac_valid),
+    .mac_clear_o    (fa_mac_clear),
     .mac_result_i   (mac_result),
     .mac_valid_i    (mac_result_valid),
     .irq_o          ()
   );
 
+  // Mux K/V reads to single KV-Cache SRAM port
+  assign kv_rd_en_o   = fa_k_rd_en | fa_v_rd_en;
+  assign kv_rd_addr_o = fa_v_rd_en ? fa_v_rd_addr : fa_k_rd_addr;
+
   // MAC array
   fp16_mac_array u_mac (
     .clk       (clk),
     .rst_n     (rst_n),
-    .clear_i   (start),
+    .clear_i   (fa_mac_clear),
     .a_i       (mac_a),
     .b_i       (mac_b),
     .valid_i   (mac_valid),

@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import os
+import math
 
 # Configuration (matching SOC parameters)
 D_MODEL = 16
@@ -123,6 +124,112 @@ def generate_fp16_test_data():
 
     return test_data
 
+
+def generate_attention_golden(output_dir='golden'):
+    """Generate Q, K, V and expected output for scaled dot-product attention.
+
+    Memory layout (FP16, row-major):
+      Feature SRAM[0..63]   = Q (SEQ_LEN x D_MODEL = 8x16 = 128 bytes = 64 FP16 words)
+      KV-Cache SRAM[0..63]  = K (SEQ_LEN x D_MODEL = 64 FP16 words)
+      KV-Cache SRAM[64..127]= V (SEQ_LEN x D_MODEL = 64 FP16 words)
+      Feature SRAM[128..191]= O (output, 64 FP16 words)
+
+    For multi-head (N_HEAD=2, HEAD_DIM=8):
+      Q[head h] = Q[h*8 .. h*8+7] per row
+    """
+    torch.manual_seed(42)
+
+    SEQ_LEN = 8
+    D_MODEL = 16
+    N_HEAD = 2
+    HEAD_DIM = D_MODEL // N_HEAD  # 8
+
+    # Generate Q, K, V: [SEQ_LEN, D_MODEL] in FP16
+    Q = torch.randn(SEQ_LEN, D_MODEL, dtype=torch.float32)
+    K = torch.randn(SEQ_LEN, D_MODEL, dtype=torch.float32)
+    V = torch.randn(SEQ_LEN, D_MODEL, dtype=torch.float32)
+
+    # Clip to avoid overflow in FP16
+    Q = torch.clamp(Q, -4.0, 4.0)
+    K = torch.clamp(K, -4.0, 4.0)
+    V = torch.clamp(V, -4.0, 4.0)
+
+    Q_fp16 = Q.half()
+    K_fp16 = K.half()
+    V_fp16 = V.half()
+
+    # Compute attention per head
+    scale = 1.0 / math.sqrt(HEAD_DIM)
+    O_heads = []
+
+    for h in range(N_HEAD):
+        # Extract head: [SEQ_LEN, HEAD_DIM]
+        q_h = Q_fp16[:, h*HEAD_DIM:(h+1)*HEAD_DIM]
+        k_h = K_fp16[:, h*HEAD_DIM:(h+1)*HEAD_DIM]
+        v_h = V_fp16[:, h*HEAD_DIM:(h+1)*HEAD_DIM]
+
+        # S = Q * K^T * scale  [SEQ_LEN, SEQ_LEN]
+        S = torch.matmul(q_h.float(), k_h.float().T) * scale
+        S_fp16 = S.half()
+
+        # P = softmax(S) - compute in FP32 for accuracy
+        P = torch.softmax(S.float(), dim=-1).half()
+
+        # O = P * V  [SEQ_LEN, HEAD_DIM]
+        O_h = torch.matmul(P.float(), v_h.float()).half()
+        O_heads.append(O_h)
+
+    # Concatenate heads: [SEQ_LEN, D_MODEL]
+    O = torch.cat(O_heads, dim=-1)
+
+    # Save as FP16 binary files
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Flatten to 1D FP16 array (row-major)
+    Q_flat = Q_fp16.numpy().flatten()
+    K_flat = K_fp16.numpy().flatten()
+    V_flat = V_fp16.numpy().flatten()
+    O_flat = O.numpy().flatten()
+
+    # Convert to FP16 binary (2 bytes per value)
+    Q_flat.astype(np.float16).tofile(os.path.join(output_dir, 'q_input.bin'))
+    K_flat.astype(np.float16).tofile(os.path.join(output_dir, 'k_input.bin'))
+    V_flat.astype(np.float16).tofile(os.path.join(output_dir, 'v_input.bin'))
+    O_flat.astype(np.float16).tofile(os.path.join(output_dir, 'attention_output.bin'))
+
+    # Save as hex text for UVM test
+    with open(os.path.join(output_dir, 'q_input.hex'), 'w') as f:
+        for val in Q_flat:
+            fp16_val = np.float16(val)
+            raw = int(fp16_val.view(np.uint16))
+            f.write(f'{raw:04X}\n')
+
+    with open(os.path.join(output_dir, 'k_input.hex'), 'w') as f:
+        for val in K_flat:
+            fp16_val = np.float16(val)
+            raw = int(fp16_val.view(np.uint16))
+            f.write(f'{raw:04X}\n')
+
+    with open(os.path.join(output_dir, 'v_input.hex'), 'w') as f:
+        for val in V_flat:
+            fp16_val = np.float16(val)
+            raw = int(fp16_val.view(np.uint16))
+            f.write(f'{raw:04X}\n')
+
+    with open(os.path.join(output_dir, 'attention_output.hex'), 'w') as f:
+        for val in O_flat:
+            fp16_val = np.float16(val)
+            raw = int(fp16_val.view(np.uint16))
+            f.write(f'{raw:04X}\n')
+
+    print(f"Generated attention golden data in {output_dir}/")
+    print(f"  Q: {Q_flat.shape} values, range [{Q_flat.min():.4f}, {Q_flat.max():.4f}]")
+    print(f"  K: {K_flat.shape} values, range [{K_flat.min():.4f}, {K_flat.max():.4f}]")
+    print(f"  V: {V_flat.shape} values, range [{V_flat.min():.4f}, {V_flat.max():.4f}]")
+    print(f"  O: {O_flat.shape} values, range [{O_flat.min():.4f}, {O_flat.max():.4f}]")
+
+    return Q_fp16, K_fp16, V_fp16, O
+
 def main():
     print("Generating AttentionCore-SOC Golden Model Data...")
 
@@ -142,6 +249,9 @@ def main():
     import json
     with open('golden/fp16_tests.json', 'w') as f:
         json.dump(fp16_data, f, indent=2)
+
+    # Generate attention golden data for e2e test
+    generate_attention_golden('golden')
 
     print("Golden model generation complete!")
 

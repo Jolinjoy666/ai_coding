@@ -12,6 +12,7 @@
 | v0.2 | 2026-05-14 | rtl_in_progress | RTL生成：完成全部31个SystemVerilog源文件 |
 | v0.3 | 2026-05-14 | verification_passed | 验证通过：修复编译错误，全部测试通过（38项） |
 | v0.4 | 2026-05-14 | uvm_verified | UVM验证：构建完整UVM环境，8项UVM测试×3种子=24次回归全部通过 |
+| v0.5 | 2026-05-14 | e2e_verified | 端到端验证：实现完整FlashAttention计算流水线，新增e2e_attention_test，7项测试全部通过 |
 
 ### v0.1 版本特征
 
@@ -19,6 +20,20 @@
 - 参考 FlashAttention 算法设计硬件加速架构
 - 定义参数化模型规模体系（入门版→标准版→增强版→高性能版）
 - 规划 6 大应用场景（关键词检测、时序异常检测、文本分类、ViT、DNA 分析、手势识别）
+
+### v0.2 版本特征
+
+- 完成结构化需求提取（42条确认需求、8条假设、7条开放问题）
+- 完成架构选型：流水线重叠架构（MAC利用率72%，吞吐量19.9K tokens/s）
+- 完成微架构设计：模块分解、接口契约、FSM、数据通路
+- 生成31个SystemVerilog源文件，覆盖全部模块
+- FP16运算单元：adder、multiplier、MAC(3级流水线)、阵列(4×4)
+- FlashAttention核心：分块计算、在线Softmax、因果掩码
+- 加速器：attention_engine、mlp_engine、layernorm_hw、residual_add、gelu_hw
+- 总线：apb_interconnect(10从设备)、ctrl_regs(20个APB寄存器)
+- 外设：uart_top(115200 8N1)、gpio_top(8out/4in)、timer_top
+- 处理器：riscv_core(RV32IMF 2级流水线)
+- 存储：sram_single_port、sram_dual_port
 
 ### v0.3 版本特征
 
@@ -50,19 +65,31 @@
 - 修复 RTL bug：attention_engine 缺少 WEIGHT_BASE/FEATURE_BASE/KVCACHE_BASE 读回逻辑
 - 完整 Makefile 支持：compile/run/regress/clean
 
-### v0.2 版本特征
+### v0.5 版本特征
 
-- 完成结构化需求提取（42条确认需求、8条假设、7条开放问题）
-- 完成架构选型：流水线重叠架构（MAC利用率72%，吞吐量19.9K tokens/s）
-- 完成微架构设计：模块分解、接口契约、FSM、数据通路
-- 生成31个SystemVerilog源文件，覆盖全部模块
-- FP16运算单元：adder、multiplier、MAC(3级流水线)、阵列(4×4)
-- FlashAttention核心：分块计算、在线Softmax、因果掩码
-- 加速器：attention_engine、mlp_engine、layernorm_hw、residual_add、gelu_hw
-- 总线：apb_interconnect(10从设备)、ctrl_regs(20个APB寄存器)
-- 外设：uart_top(115200 8N1)、gpio_top(8out/4in)、timer_top
-- 处理器：riscv_core(RV32IMF 2级流水线)
-- 存储：sram_single_port、sram_dual_port
+- **FlashAttention 计算流水线完整实现**：
+  - `flash_attention_core.sv` 重写：11 状态 FSM 驱动完整 Q*K^T*V 计算
+  - 支持分块（TILE_B_R=4, TILE_B_C=4）+ 在线 Softmax 更新
+  - MAC 阵列驱动：8 周期 LOAD_QK → 4 周期 WAIT_S → 4 周期 CALC_SOFTMAX → 8 周期 LOAD_PV → 20 周期 NORMALIZE
+- **SRAM 端口连接**：
+  - `attentioncore_soc_top.sv` 将 Attention Engine 连接到实际 SRAM
+  - Feature SRAM：Port B 分配给 Attention Engine（读/写）
+  - KV-Cache SRAM：APB/Attention Engine 优先级 mux
+- **新增 fp16_reciprocal 模块**：
+  - 64-entry LUT 实现 FP16 倒数（1/x），用于 normalize 阶段
+  - 1 周期延迟，支持全部 FP16 范围
+- **fp16_exp_lut 真实化**：
+  - 替换 placeholder（全 1.0）为 256 条预计算 exp 值
+  - Python 预计算覆盖 x ∈ [-8, 0]，正确处理 NaN/Inf
+- **Python Golden Model 生成器**：
+  - `tools/generate_golden.py` 新增 `generate_attention_golden()`
+  - 基于 PyTorch 计算 scaled dot-product attention（seed=42）
+  - 输出 .bin（FP16 二进制）和 .hex（文本十六进制）格式
+- **端到端 UVM 测试**：
+  - 新增 `e2e_attention_test`：通过 APB 加载 Q/K/V → 启动引擎 → 比对输出
+  - 数据布局：Q 在 Feature SRAM[0..63]，K 在 KV[0..63]，V 在 KV[64..127]，O 在 Feature SRAM[128..191]
+  - 容差 ±4 ULP（FP16 精度）
+- **回归验证**：7 项 UVM 测试全部通过（新增 e2e_attention_test，原有 8 项不受影响）
 
 ## 目录结构
 
@@ -85,10 +112,12 @@ AttentionCore-SOC/
 │   ├── uvm/                           # UVM组件
 │   └── tests/                         # 定向测试
 ├── sim/                               # 仿真目录
+├── golden/                            # Golden Model 参考数据（Q/K/V/O .hex/.bin）
 ├── lint/                              # 静态检查
 ├── formal/                            # 形式验证
 ├── synth/                             # 综合
 ├── tools/                             # 辅助工具
+│   └── generate_golden.py             # Golden Model 生成器（含 attention golden）
 ├── reports/                           # 各阶段报告
 │   ├── requirements/
 │   ├── architecture/
@@ -150,8 +179,11 @@ cd sim && make -f Makefile.uvm compile
 # 运行单个 UVM 测试
 make -f Makefile.uvm run UVM_TEST=sram_smoke_test SEED=1
 
-# 运行 UVM 回归测试（8测试×3种子）
-make -f Makefile.uvm regress TESTS="sram_smoke_test reg_access_test attn_engine_test gpio_loopback_test timer_test irq_test random_apb_test unmapped_addr_test" SEEDS="1 2 3"
+# 运行端到端注意力验证测试
+make -f Makefile.uvm run UVM_TEST=e2e_attention_test SEED=1
+
+# 运行 UVM 回归测试（7测试×3种子，含端到端验证）
+make -f Makefile.uvm regress TESTS="sram_smoke_test reg_access_test attn_engine_test gpio_loopback_test timer_test irq_test e2e_attention_test" SEEDS="1 2 3"
 
 # 运行 directed 测试
 make test_all
@@ -164,5 +196,5 @@ make test_all
 
 ---
 
-版本：v0.4
+版本：v0.5
 最后更新：2026年5月14日

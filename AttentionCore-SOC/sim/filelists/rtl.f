@@ -16,6 +16,7 @@
 ../rtl/src/fp16_multiplier.sv
 ../rtl/src/fp16_comparator.sv
 ../rtl/src/fp16_exp_lut.sv
+../rtl/src/fp16_reciprocal.sv
 ../rtl/src/fp16_rowmax.sv
 ../rtl/src/fp16_rowsum.sv
 

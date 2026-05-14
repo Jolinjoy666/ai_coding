@@ -350,6 +350,18 @@ module attentioncore_soc_top
   );
 
   // ---- Attention Engine ----
+  // Attention engine SRAM port signals
+  logic                     attn_feat_rd_en, attn_feat_wr_en;
+  logic [FEATURE_ADDR_W-1:0] attn_feat_rd_addr, attn_feat_wr_addr;
+  logic [FP16_WIDTH-1:0]    attn_feat_wr_data, attn_feat_rd_data;
+  logic                     attn_wt_rd_en;
+  logic [WEIGHT_ADDR_W-1:0] attn_wt_rd_addr;
+  logic [FP16_WIDTH-1:0]    attn_wt_rd_data;
+  logic                     attn_kv_rd_en, attn_kv_wr_en;
+  logic [KVCACHE_ADDR_W-1:0] attn_kv_rd_addr, attn_kv_wr_addr;
+  logic [FP16_WIDTH-1:0]    attn_kv_wr_data, attn_kv_rd_data;
+  logic                     attn_busy;
+
   attention_engine u_attn (
     .clk           (clk),
     .rst_n         (rst_n),
@@ -361,23 +373,27 @@ module attentioncore_soc_top
     .prdata_o      (s_prdata[5]),
     .pready_o      (s_pready[5]),
     .pslverr_o     (s_pslverr[5]),
-    .feat_rd_en_o  (),
-    .feat_rd_addr_o(),
-    .feat_rd_data_i('0),
-    .feat_wr_en_o  (),
-    .feat_wr_addr_o(),
-    .feat_wr_data_o(),
-    .wt_rd_en_o    (),
-    .wt_rd_addr_o  (),
-    .wt_rd_data_i  ('0),
-    .kv_rd_en_o    (),
-    .kv_rd_addr_o  (),
-    .kv_rd_data_i  ('0),
-    .kv_wr_en_o    (),
-    .kv_wr_addr_o  (),
-    .kv_wr_data_o  (),
+    .feat_rd_en_o  (attn_feat_rd_en),
+    .feat_rd_addr_o(attn_feat_rd_addr),
+    .feat_rd_data_i(attn_feat_rd_data),
+    .feat_wr_en_o  (attn_feat_wr_en),
+    .feat_wr_addr_o(attn_feat_wr_addr),
+    .feat_wr_data_o(attn_feat_wr_data),
+    .wt_rd_en_o    (attn_wt_rd_en),
+    .wt_rd_addr_o  (attn_wt_rd_addr),
+    .wt_rd_data_i  (attn_wt_rd_data),
+    .kv_rd_en_o    (attn_kv_rd_en),
+    .kv_rd_addr_o  (attn_kv_rd_addr),
+    .kv_rd_data_i  (attn_kv_rd_data),
+    .kv_wr_en_o    (attn_kv_wr_en),
+    .kv_wr_addr_o  (attn_kv_wr_addr),
+    .kv_wr_data_o  (attn_kv_wr_data),
     .irq_o         (attn_irq)
   );
+
+  // Attention engine busy: used for SRAM mux arbitration.
+  // When the engine is active (driving SRAM ports), it gets priority.
+  // This is detected by checking if the engine is driving any SRAM enable.
 
   // ---- MLP Engine ----
   mlp_engine u_mlp (
@@ -404,32 +420,50 @@ module attentioncore_soc_top
   );
 
   // ---- Weight SRAM ----
-  assign wt_cs    = s_psel[7];
-  assign wt_we    = s_pwrite[7];
-  assign wt_addr  = s_paddr[7][WEIGHT_ADDR_W:1];
-  assign wt_wdata = s_pwdata[7][FP16_WIDTH-1:0];
+  // Single-port SRAM muxed between APB and attention engine.
+  // Priority: attention engine read when active, else APB.
+  logic                     wt_attn_active;
+  logic                     wt_mux_cs;
+  logic                     wt_mux_we;
+  logic [WEIGHT_ADDR_W-1:0] wt_mux_addr;
+  logic [FP16_WIDTH-1:0]    wt_mux_wdata;
+
+  assign wt_attn_active = attn_wt_rd_en;
+
+  assign wt_mux_cs    = wt_attn_active ? 1'b1              : s_psel[7];
+  assign wt_mux_we    = wt_attn_active ? 1'b0              : s_pwrite[7];
+  assign wt_mux_addr  = wt_attn_active ? attn_wt_rd_addr   : s_paddr[7][WEIGHT_ADDR_W:1];
+  assign wt_mux_wdata = wt_attn_active ? '0                : s_pwdata[7][FP16_WIDTH-1:0];
 
   sram_single_port #(
     .WORDS (WEIGHT_WORDS),
     .WIDTH (FP16_WIDTH)
   ) u_weight_sram (
     .clk    (clk),
-    .cs_i   (wt_cs),
-    .we_i   (wt_we),
-    .addr_i (wt_addr),
-    .wdata_i(wt_wdata),
+    .cs_i   (wt_mux_cs),
+    .we_i   (wt_mux_we),
+    .addr_i (wt_mux_addr),
+    .wdata_i(wt_mux_wdata),
     .rdata_o(wt_rdata)
   );
+
+  // Feed read data back to attention engine
+  assign attn_wt_rd_data = wt_rdata;
 
   assign s_prdata[7]  = {16'b0, wt_rdata};
   assign s_pready[7]  = 1'b1;
   assign s_pslverr[7] = 1'b0;
 
   // ---- Feature SRAM ----
+  // Port A: APB access (read/write Q data, read output O)
+  // Port B: Attention engine (read Q for computation, write output O)
   assign feat_cs    = s_psel[8];
   assign feat_we    = s_pwrite[8];
   assign feat_addr  = s_paddr[8][FEATURE_ADDR_W:1];
   assign feat_wdata = s_pwdata[8][FP16_WIDTH-1:0];
+
+  // Feature SRAM read data from attention engine (Port B)
+  logic [FP16_WIDTH-1:0] feat_b_rdata;
 
   sram_dual_port #(
     .WORDS (FEATURE_WORDS),
@@ -441,35 +475,54 @@ module attentioncore_soc_top
     .a_addr_i(feat_addr),
     .a_wdata_i(feat_wdata),
     .a_rdata_o(feat_rdata),
-    .b_cs_i  (1'b0),
-    .b_we_i  (1'b0),
-    .b_addr_i('0),
-    .b_wdata_i('0),
-    .b_rdata_o()
+    .b_cs_i  (attn_feat_rd_en | attn_feat_wr_en),
+    .b_we_i  (attn_feat_wr_en),
+    .b_addr_i(attn_feat_wr_en ? attn_feat_wr_addr : attn_feat_rd_addr),
+    .b_wdata_i(attn_feat_wr_data),
+    .b_rdata_o(feat_b_rdata)
   );
+
+  // Feed Port B read data back to attention engine
+  assign attn_feat_rd_data = feat_b_rdata;
 
   assign s_prdata[8]  = {16'b0, feat_rdata};
   assign s_pready[8]  = 1'b1;
   assign s_pslverr[8] = 1'b0;
 
   // ---- KV-Cache SRAM ----
-  assign kv_cs    = s_psel[9];
-  assign kv_we    = s_pwrite[9];
-  assign kv_addr  = s_paddr[9][KVCACHE_ADDR_W:1];
-  assign kv_wdata = s_pwdata[9][FP16_WIDTH-1:0];
+  // Single-port SRAM muxed between APB and attention engine.
+  // Priority: attention engine read/write when active, else APB.
+  // In test_mode: APB loads K/V data first, then engine runs.
+  logic                     kv_attn_active;
+  logic                     kv_mux_cs;
+  logic                     kv_mux_we;
+  logic [KVCACHE_ADDR_W-1:0] kv_mux_addr;
+  logic [FP16_WIDTH-1:0]    kv_mux_wdata;
+
+  assign kv_attn_active = attn_kv_rd_en | attn_kv_wr_en;
+
+  assign kv_mux_cs    = kv_attn_active ? 1'b1              : s_psel[9];
+  assign kv_mux_we    = kv_attn_active ? attn_kv_wr_en     : s_pwrite[9];
+  assign kv_mux_addr  = kv_attn_active ? (attn_kv_wr_en ? attn_kv_wr_addr : attn_kv_rd_addr)
+                                        : s_paddr[9][KVCACHE_ADDR_W:1];
+  assign kv_mux_wdata = kv_attn_active ? attn_kv_wr_data   : s_pwdata[9][FP16_WIDTH-1:0];
 
   sram_single_port #(
     .WORDS (KVCACHE_WORDS),
     .WIDTH (FP16_WIDTH)
   ) u_kvcache_sram (
     .clk    (clk),
-    .cs_i   (kv_cs),
-    .we_i   (kv_we),
-    .addr_i (kv_addr),
-    .wdata_i(kv_wdata),
+    .cs_i   (kv_mux_cs),
+    .we_i   (kv_mux_we),
+    .addr_i (kv_mux_addr),
+    .wdata_i(kv_mux_wdata),
     .rdata_o(kv_rdata)
   );
 
+  // Feed read data back to attention engine
+  assign attn_kv_rd_data = kv_rdata;
+
+  // APB sees read data when not overridden by engine
   assign s_prdata[9]  = {16'b0, kv_rdata};
   assign s_pready[9]  = 1'b1;
   assign s_pslverr[9] = 1'b0;
