@@ -79,6 +79,35 @@ test_mac:
 	  -o simv_mac -l compile_mac.log
 	./simv_mac -l sim_mac.log
 
+# FP16 Adder test
+.PHONY: test_adder
+test_adder:
+	$(VCS) -full64 -sverilog -timescale=1ns/1ps \
+	  -debug_access+all \
+	  -cc gcc -cpp g++ -LDFLAGS -Wl,-no-as-needed \
+	  +incdir+$(RTL_DIR) \
+	  $(PKG_DIR)/soc_params_pkg.sv \
+	  $(RTL_DIR)/fp16_adder.sv \
+	  $(TEST_DIR)/fp16_adder_test.sv \
+	  -o simv_adder -l compile_adder.log
+	./simv_adder -l sim_adder.log
+
+# FP16 MAC Array test
+.PHONY: test_array
+test_array:
+	$(VCS) -full64 -sverilog -timescale=1ns/1ps \
+	  -debug_access+all \
+	  -cc gcc -cpp g++ -LDFLAGS -Wl,-no-as-needed \
+	  +incdir+$(RTL_DIR) \
+	  $(PKG_DIR)/soc_params_pkg.sv \
+	  $(RTL_DIR)/fp16_adder.sv \
+	  $(RTL_DIR)/fp16_multiplier.sv \
+	  $(RTL_DIR)/fp16_mac.sv \
+	  $(RTL_DIR)/fp16_mac_array.sv \
+	  $(TEST_DIR)/fp16_mac_array_test.sv \
+	  -o simv_array -l compile_array.log
+	./simv_array -l sim_array.log
+
 # SOC simulation
 .PHONY: sim_soc
 sim_soc: compile
@@ -101,4 +130,4 @@ clean:
 
 # All tests
 .PHONY: test_all
-test_all: test_mac
+test_all: test_adder test_mac test_array test_soc
