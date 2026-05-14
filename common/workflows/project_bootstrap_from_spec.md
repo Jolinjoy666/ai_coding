@@ -24,7 +24,7 @@ This workflow runs before `spec_to_architecture.md` and before any RTL or DV gen
 5. If the path exists, stop and ask the user whether to choose another name or reuse the existing project.
 6. Create the standard directory tree from `common/templates/project_init/directory_manifest.md`.
 7. Instantiate `common/templates/project_init/project.yaml.template` as `<project_name>/project.yaml`.
-8. Instantiate `common/templates/project_init/README.md.template` as `<project_name>/README.md`.
+8. Instantiate `common/templates/project_init/README.md.template` as `<project_name>/README.md`. The README must be in Chinese and include: version history table, version features, file structure, design parameters, and quick start guide. This file is the user's primary project tracking document.
 9. Save the raw spec as `<project_name>/spec/raw_spec.md` using `common/templates/project_init/raw_spec.md.template`.
 10. Instantiate `common/templates/project_init/ai_project_context.md.template` as `<project_name>/ai/project_context.md`.
 11. Confirm that `project.yaml` links to `../common` assets.

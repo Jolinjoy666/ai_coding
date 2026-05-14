@@ -10,3 +10,8 @@
     - Set `current_workflow_stage` to `signoff_ready`.
     - Set `next_recommended_stage` to `null` or next-phase tool (synthesis/STA/DFT).
     - Record final known risks and waivers.
+8. Update project `README.md`:
+    - Add new version entry to the version history table with date, status, and summary of changes.
+    - Update the "版本特征" section for the new version.
+    - Ensure file structure diagram reflects current state.
+    - Update "待改进项" if applicable.

@@ -27,6 +27,15 @@ Run a complete local AI-assisted digital IC design loop from raw user spec to si
 
 Each step must update `ai/project_context.md` before proceeding to the next.
 
+## README 更新规则
+
+项目 `README.md` 是用户的主跟踪文档（必须为中文）。在以下阶段边界必须更新：
+
+- **bootstrap 完成后**：初始化版本记录表（v0.1）。
+- **RTL 生成完成后**：新增版本条目，更新目录结构和设计参数。
+- **UVM 验证完成后**：新增版本条目，更新验证结果。
+- **signoff 完成后**：新增最终版本条目，更新待改进项。
+
 ## Project outputs
 
 - `project.yaml`

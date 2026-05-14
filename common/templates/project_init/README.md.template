@@ -1,52 +1,88 @@
 # {{PROJECT_NAME}}
 
-## Purpose
+## 项目概述
 
 {{PROJECT_DESCRIPTION}}
 
-## Status
+## 版本记录
 
-Initialized from raw user spec.
+| 版本 | 日期 | 状态 | 主要变更 |
+|------|------|------|----------|
+| v0.1 | {{CREATION_DATE}} | initialized | 初始版本：项目创建，保存原始规格 |
 
-## Directory layout
+### v0.1 版本特征
 
-- `spec/`: raw spec, structured requirements, assumptions, and open questions.
-- `docs/architecture/`: architecture options and selected architecture.
-- `docs/micro_arch/`: RTL-ready micro-architecture documents.
-- `ai/`: AI-maintained context, decisions, and task notes.
-- `rtl/`: SystemVerilog RTL source, generated drafts, includes, and packages.
-- `dv/`: testbench, UVM environment, tests, reference models, and coverage.
-- `sim/`: simulation Makefiles, filelists, logs, waves, and run directories.
-- `lint/`: lint/static-check setup and reports.
-- `formal/`: formal verification setup and reports.
-- `synth/`: synthesis setup and reports.
-- `tools/`: project-specific helper scripts and wrappers.
-- `reports/`: requirements, architecture, micro-architecture, RTL review, verification, and signoff reports.
-- `build/`: generated build artifacts.
-- `third_party/`: external IP, models, or libraries.
+- 从原始规格启动项目
+- 创建标准目录结构
+- 生成项目元数据
 
-## Common assets
+## 目录结构
 
-This project uses reusable assets from `../common`:
-
-- `../common/skills`
-- `../common/workflows`
-- `../common/standards`
-- `../common/templates`
-- `../common/checklists`
-- `../common/schemas`
-- `../common/eda_adapters`
-
-## Recommended next step
-
-Run:
-
-```text
-common/skills/00_spec_intake/spec_to_requirements
+```
+{{PROJECT_NAME}}/
+├── README.md                    # 本文件（中文，项目跟踪）
+├── project.yaml                 # 项目配置元数据
+├── spec/                        # 设计规格
+│   └── raw_spec.md              # 原始规格
+├── docs/                        # 设计文档
+│   ├── architecture/            # 架构设计
+│   └── micro_arch/              # 微架构设计
+├── rtl/                         # RTL源码
+│   ├── src/                     # review后的产品级RTL
+│   └── generated/               # AI生成的RTL草稿
+├── dv/                          # 验证环境
+│   ├── tb/                      # 测试平台
+│   └── uvm/                     # UVM组件
+├── sim/                         # 仿真目录
+│   └── Makefile                 # 编译仿真脚本
+├── lint/                        # 静态检查
+├── formal/                      # 形式验证
+├── synth/                       # 综合
+├── tools/                       # 辅助工具脚本
+├── reports/                     # 各阶段报告
+│   ├── requirements/            # 需求报告
+│   ├── architecture/            # 架构报告
+│   ├── micro_arch/              # 微架构报告
+│   ├── rtl_review/              # RTL审查报告
+│   ├── verification/            # 验证报告
+│   └── signoff/                 # 签核报告
+├── build/                       # 构建产物
+├── third_party/                 # 外部IP/模型
+└── ai/                          # AI上下文
+    └── project_context.md       # 项目状态和操作规则
 ```
 
-Then continue with:
+## 设计参数
 
-```text
-common/workflows/spec_to_architecture.md
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| （待填写） | - | - |
+
+## 主要特性
+
+- （待填写）
+
+## 环境要求
+
+- Synopsys VCS（仿真）
+- Python 3.6+（辅助工具）
+
+## 快速开始
+
+```bash
+# 编译
+cd sim && make compile
+
+# 仿真
+make run UVM_TEST=<test_name> SEED=1
 ```
+
+## 文档
+
+- [原始规格](spec/raw_spec.md)
+- （后续阶段完成后补充）
+
+---
+
+版本：v0.1
+最后更新：{{CREATION_DATE}}
