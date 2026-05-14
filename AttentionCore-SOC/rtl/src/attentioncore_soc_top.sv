@@ -17,7 +17,18 @@ module attentioncore_soc_top
   input  logic [3:0]  gpio_in,
 
   // Interrupt
-  output logic        irq
+  output logic        irq,
+
+  // Test mode: bypass RISC-V, drive APB directly
+  input  logic        test_mode_i,
+  input  logic [31:0] test_paddr_i,
+  input  logic        test_psel_i,
+  input  logic        test_penable_i,
+  input  logic        test_pwrite_i,
+  input  logic [31:0] test_pwdata_i,
+  output logic [31:0] test_prdata_o,
+  output logic        test_pready_o,
+  output logic        test_pslverr_o
 );
 
   // ---- Internal Signals ----
@@ -118,15 +129,20 @@ module attentioncore_soc_top
   );
 
   // ---- APB Master Bridge ----
-  // Convert memory interface to APB
-  assign apb_paddr   = rv_data_addr;
-  assign apb_psel    = rv_data_re || rv_data_we;
-  assign apb_penable = apb_psel;
-  assign apb_pwrite  = rv_data_we;
-  assign apb_pwdata  = rv_data_wdata;
+  // Mux between RISC-V and test APB master
+  assign apb_paddr   = test_mode_i ? test_paddr_i   : rv_data_addr;
+  assign apb_psel    = test_mode_i ? test_psel_i     : (rv_data_re || rv_data_we);
+  assign apb_penable = test_mode_i ? test_penable_i  : apb_psel;
+  assign apb_pwrite  = test_mode_i ? test_pwrite_i   : rv_data_we;
+  assign apb_pwdata  = test_mode_i ? test_pwdata_i   : rv_data_wdata;
 
   assign rv_data_rdata = apb_prdata;
   assign rv_data_ready = apb_pready;
+
+  // Test APB response
+  assign test_prdata_o  = apb_prdata;
+  assign test_pready_o  = apb_pready;
+  assign test_pslverr_o = apb_pslverr;
 
   // ---- APB Interconnect ----
   apb_interconnect u_apb (

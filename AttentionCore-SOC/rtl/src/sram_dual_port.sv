@@ -28,7 +28,7 @@ module sram_dual_port
   // Memory array
   logic [WIDTH-1:0] mem [0:WORDS-1];
 
-  // Port A operation
+  // Port A and Port B operation (single always_ff to avoid multi-driver)
   always_ff @(posedge clk) begin
     if (a_cs_i) begin
       if (a_we_i) begin
@@ -36,10 +36,7 @@ module sram_dual_port
       end
       a_rdata_o <= mem[a_addr_i];
     end
-  end
 
-  // Port B operation
-  always_ff @(posedge clk) begin
     if (b_cs_i) begin
       if (b_we_i) begin
         mem[b_addr_i] <= b_wdata_i;

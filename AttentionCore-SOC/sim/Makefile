@@ -56,15 +56,17 @@ TEST_FILES = $(TEST_DIR)/fp16_mac_test.sv
 compile:
 	$(VCS) -full64 -sverilog -timescale=1ns/1ps \
 	  -debug_access+all \
+	  -cc gcc -cpp g++ -LDFLAGS -Wl,-no-as-needed \
 	  +incdir+$(RTL_DIR) \
 	  $(RTL_FILES) $(TB_FILES) \
-	  -o simv_soc
+	  -o simv_soc -l compile_soc.log
 
 # FP16 MAC test
 .PHONY: test_mac
 test_mac:
 	$(VCS) -full64 -sverilog -timescale=1ns/1ps \
 	  -debug_access+all \
+	  -cc gcc -cpp g++ -LDFLAGS -Wl,-no-as-needed \
 	  +incdir+$(RTL_DIR) \
 	  $(PKG_DIR)/soc_params_pkg.sv \
 	  $(RTL_DIR)/fp16_adder.sv \
@@ -74,13 +76,18 @@ test_mac:
 	  $(RTL_DIR)/fp32_to_fp16.sv \
 	  $(RTL_DIR)/fp32_adder.sv \
 	  $(TEST_DIR)/fp16_mac_test.sv \
-	  -o simv_mac
-	./simv_mac
+	  -o simv_mac -l compile_mac.log
+	./simv_mac -l sim_mac.log
 
 # SOC simulation
 .PHONY: sim_soc
 sim_soc: compile
 	./simv_soc
+
+# SOC test (full verification)
+.PHONY: test_soc
+test_soc: compile
+	./simv_soc -l sim_soc.log
 
 # Waveform
 .PHONY: wave

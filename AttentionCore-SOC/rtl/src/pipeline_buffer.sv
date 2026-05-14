@@ -55,13 +55,18 @@ module pipeline_buffer
     end
   end
 
-  // Write logic
+  // Combined write and read logic (single always_comb to avoid multi-driver)
   always_comb begin
+    // Defaults
     sel_d         = sel_q;
     wr_cnt_d      = wr_cnt_q;
+    rd_cnt_d      = rd_cnt_q;
     buf_a_valid_d = buf_a_valid_q;
     buf_b_valid_d = buf_b_valid_q;
+    rd_valid_o    = 1'b0;
+    rd_last_o     = 1'b0;
 
+    // Write logic
     if (wr_en_i) begin
       if (sel_q == 1'b0) begin
         buf_a[wr_cnt_q] <= wr_data_i;
@@ -81,14 +86,8 @@ module pipeline_buffer
         wr_cnt_d = wr_cnt_q + 1;
       end
     end
-  end
 
-  // Read logic
-  always_comb begin
-    rd_cnt_d = rd_cnt_q;
-    rd_valid_o = 1'b0;
-    rd_last_o  = 1'b0;
-
+    // Read logic
     if (rd_en_i) begin
       if (sel_q == 1'b1) begin
         // Reading from buffer A

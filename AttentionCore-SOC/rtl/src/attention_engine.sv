@@ -250,9 +250,7 @@ module attention_engine
   // Interrupt output
   assign irq_o = |(irq_status & irq_en);
 
-  // Status outputs
-  assign status_busy  = busy;
-  assign status_done  = done;
+  // Status outputs (registered in always_ff above)
   assign status_error = 1'b0;
 
   // Busy/done from multi-head scheduler
