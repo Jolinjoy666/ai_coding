@@ -19,13 +19,13 @@
 ## Current workflow stage
 
 ```text
-rtl_in_progress
+verification_in_progress
 ```
 
 ## Next recommended stage
 
 ```text
-rtl_simulation_debug
+uvm_env_generation
 ```
 
 ## AI operating rules for this project
