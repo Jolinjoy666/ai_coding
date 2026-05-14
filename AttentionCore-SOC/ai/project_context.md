@@ -25,7 +25,7 @@ rtl_in_progress
 ## Next recommended stage
 
 ```text
-rtl_static_check
+rtl_simulation_debug
 ```
 
 ## AI operating rules for this project
