@@ -35,6 +35,6 @@ interface apb_if(input logic clk);
     input pslverr;
   endclocking
 
-  modport driver(clocking driver_cb, input clk, paddr, psel, penable, pwrite, pwdata, pstrb, output prdata, pready, pslverr);
-  modport monitor(clocking monitor_cb, input clk, paddr, psel, penable, pwrite, pwdata, pstrb, prdata, pready, pslverr);
+  modport driver(input clk, prdata, pready, pslverr, output paddr, psel, penable, pwrite, pwdata, pstrb);
+  modport monitor(input clk, paddr, psel, penable, pwrite, pwdata, pstrb, prdata, pready, pslverr);
 endinterface

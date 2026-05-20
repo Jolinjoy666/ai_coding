@@ -219,6 +219,7 @@ module attention_engine
     .seq_len_i      (seq_len),
     .d_model_i      (d_model),
     .n_head_i       (n_head),
+    .head_idx_i     (head_idx),
     .scale_factor_i (scale_factor),
     .q_rd_en_o      (feat_rd_en_o),
     .q_rd_addr_o    (feat_rd_addr_o),

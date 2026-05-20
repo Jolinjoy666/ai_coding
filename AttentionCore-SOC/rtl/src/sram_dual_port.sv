@@ -1,6 +1,8 @@
 // Dual-Port SRAM Wrapper
 // True dual-port SRAM model for synthesis.
 // Port A and Port B can operate independently.
+// Writes are synchronous (registered on clock edge).
+// Reads are combinational (data available same cycle as address).
 
 module sram_dual_port
   import soc_params_pkg::*;
@@ -28,21 +30,18 @@ module sram_dual_port
   // Memory array
   logic [WIDTH-1:0] mem [0:WORDS-1];
 
-  // Port A and Port B operation (single always_ff to avoid multi-driver)
+  // Synchronous write (both ports)
   always_ff @(posedge clk) begin
-    if (a_cs_i) begin
-      if (a_we_i) begin
-        mem[a_addr_i] <= a_wdata_i;
-      end
-      a_rdata_o <= mem[a_addr_i];
+    if (a_cs_i && a_we_i) begin
+      mem[a_addr_i] <= a_wdata_i;
     end
-
-    if (b_cs_i) begin
-      if (b_we_i) begin
-        mem[b_addr_i] <= b_wdata_i;
-      end
-      b_rdata_o <= mem[b_addr_i];
+    if (b_cs_i && b_we_i) begin
+      mem[b_addr_i] <= b_wdata_i;
     end
   end
+
+  // Combinational read
+  assign a_rdata_o = mem[a_addr_i];
+  assign b_rdata_o = mem[b_addr_i];
 
 endmodule

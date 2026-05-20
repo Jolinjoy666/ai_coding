@@ -62,6 +62,13 @@ module multi_head_scheduler
   // Output assignments
   assign head_idx_o = head_cnt_q;
 
+  // Debug
+  always_ff @(posedge clk) begin
+    if (state_q != state_d)
+      $display("[%0t] MHS: %0d->%0d head_cnt=%0d fa_done=%0b fa_start=%0b",
+        $time, state_q, state_d, head_cnt_q, fa_done_i, fa_start_o);
+  end
+
   // Next-state logic
   always_comb begin
     state_d     = state_q;

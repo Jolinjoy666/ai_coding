@@ -459,11 +459,11 @@ endclass
 class e2e_attention_test extends attn_base_test;
   `uvm_component_utils(e2e_attention_test)
 
-  // Golden data
-  logic [15:0] q_data [0:63];   // 8 rows x 16 cols = 128 FP16 = 64 32-bit words... wait
-  logic [15:0] k_data [0:63];
-  logic [15:0] v_data [0:63];
-  logic [15:0] o_expected [0:63];
+  // Golden data (128 FP16 values = 8 rows x 16 cols)
+  logic [15:0] q_data [0:127];
+  logic [15:0] k_data [0:127];
+  logic [15:0] v_data [0:127];
+  logic [15:0] o_expected [0:127];
 
   // Parameters
   localparam int SEQ_LEN  = 8;
@@ -503,7 +503,7 @@ class e2e_attention_test extends attn_base_test;
     write_reg(ATTN_BASE + 8'h10, 32'h0000_0008);  // SEQ_LEN = 8
     write_reg(ATTN_BASE + 8'h14, 32'h0000_0010);  // D_MODEL = 16
     write_reg(ATTN_BASE + 8'h18, 32'h0000_0002);  // N_HEAD = 2
-    write_reg(ATTN_BASE + 8'h40, 32'h0000_2E35);  // scale = 1/sqrt(8) ≈ 0.3536
+    write_reg(ATTN_BASE + 8'h40, 32'h0000_35A8);  // scale = 1/sqrt(8) ≈ 0.3536 in FP16
 
     // Step 6: Start attention engine
     write_reg(ATTN_BASE + 8'h00, 32'h0000_0001);  // CTRL.START
@@ -531,10 +531,15 @@ class e2e_attention_test extends attn_base_test;
 
     // Step 8: Read output from Feature SRAM (offset 128 bytes = 64 FP16 words)
     begin
-      logic [15:0] o_actual [0:63];
+      logic [15:0] o_actual [0:127];
       int mismatches = 0;
 
       read_sram16(FEATURE_BASE + 32'h100, o_actual, NUM_EL, "O");
+
+      // Debug: print first few actual and expected values
+      for (int i = 0; i < 8; i++) begin
+        `uvm_info("TEST", $sformatf("  O[%0d]: exp=0x%04h act=0x%04h", i, o_expected[i], o_actual[i]), UVM_LOW)
+      end
 
       // Step 9: Compare with golden
       for (int i = 0; i < NUM_EL; i++) begin
@@ -543,18 +548,26 @@ class e2e_attention_test extends attn_base_test;
         exp_val = o_expected[i];
         act_val = o_actual[i];
 
-        // Compute absolute difference (unsigned)
-        if (act_val[14:0] > exp_val[14:0])
-          diff = act_val[14:0] - exp_val[14:0];
-        else
-          diff = exp_val[14:0] - act_val[14:0];
-
-        // Allow up to 2 ULP difference (FP16 precision)
-        if (diff > 16'h0004 || (exp_val[15] != act_val[15])) begin
+        // Check for X values first
+        if (^act_val === 1'bx) begin
           mismatches++;
           if (mismatches <= 10) begin
-            `uvm_info("TEST", $sformatf("MISMATCH[%0d]: exp=0x%04h act=0x%04h diff=%0d",
-              i, exp_val, act_val, diff), UVM_LOW)
+            `uvm_error("TEST", $sformatf("X_VALUE[%0d]: exp=0x%04h act=0x%04h", i, exp_val, act_val))
+          end
+        end else begin
+          // Compute absolute difference (unsigned)
+          if (act_val[14:0] > exp_val[14:0])
+            diff = act_val[14:0] - exp_val[14:0];
+          else
+            diff = exp_val[14:0] - act_val[14:0];
+
+          // Allow up to 4 ULP difference (FP16 precision)
+          if (diff > 16'h0004 || (exp_val[15] != act_val[15])) begin
+            mismatches++;
+            if (mismatches <= 10) begin
+              `uvm_info("TEST", $sformatf("MISMATCH[%0d]: exp=0x%04h act=0x%04h diff=%0d",
+                i, exp_val, act_val, diff), UVM_LOW)
+            end
           end
         end
       end
@@ -562,13 +575,10 @@ class e2e_attention_test extends attn_base_test;
       if (mismatches == 0) begin
         `uvm_info("TEST", "=== E2E Attention Test: ALL OUTPUTS MATCH ===", UVM_LOW)
       end else begin
-        `uvm_info("TEST", $sformatf("=== E2E Attention Test: %0d/%0d mismatches (may be due to RTL approximation) ===",
-          mismatches, NUM_EL), UVM_LOW)
-        // Don't fail - RTL uses simplified softmax, so some mismatch is expected
+        `uvm_error("TEST", $sformatf("=== E2E Attention Test: %0d/%0d mismatches ===",
+          mismatches, NUM_EL))
       end
     end
-
-    `uvm_info("TEST", "=== E2E Attention Test PASSED ===", UVM_LOW)
     phase.drop_objection(this);
   endtask
 
@@ -622,7 +632,7 @@ class e2e_attention_test extends attn_base_test;
   endtask
 
   // Write FP16 values to SRAM via APB (16-bit per word)
-  task write_sram16(bit [31:0] base, logic [15:0] data[], int count, string name);
+  task write_sram16(bit [31:0] base, input logic [15:0] data[128], input int count, input string name);
     for (int i = 0; i < count; i++) begin
       apb_write_seq wr;
       wr = apb_write_seq::type_id::create($sformatf("wr_%s_%0d", name, i));
@@ -633,8 +643,8 @@ class e2e_attention_test extends attn_base_test;
     `uvm_info("TEST", $sformatf("Wrote %0d FP16 words to %s", count, name), UVM_LOW)
   endtask
 
-  // Read FP16 values from SRAM via APB
-  task read_sram16(bit [31:0] base, logic [15:0] data[], int count, string name);
+  // Read FP16 values from SRAM via APB (inline loop since ref+dynamic array not supported)
+  task read_sram16(bit [31:0] base, output logic [15:0] data[128], input int count, input string name);
     for (int i = 0; i < count; i++) begin
       apb_read_seq rd;
       rd = apb_read_seq::type_id::create($sformatf("rd_%s_%0d", name, i));

@@ -67,17 +67,16 @@ module fp16_reciprocal
       recip_o <= '0;
       valid_o <= 1'b0;
     end else begin
-      if (is_zero) begin
-        // 1/0 = inf
-        recip_o <= {sign, 5'h1F, 10'b0};
-      end else if (recip_exp[5]) begin
-        // Exponent underflow (input too large) → result ≈ 0
-        recip_o <= {sign, 5'b0, 10'b0};
-      end else if (recip_exp[4:0] == 5'h1F) begin
-        // Exponent overflow (input too small) → inf
-        recip_o <= {sign, 5'h1F, 10'b0};
-      end else begin
-        recip_o <= {sign, recip_exp[4:0], lut[lut_idx][9:0]};
+      if (valid_i) begin
+        if (is_zero) begin
+          recip_o <= {sign, 5'h1F, 10'b0};
+        end else if (recip_exp[5]) begin
+          recip_o <= {sign, 5'b0, 10'b0};
+        end else if (recip_exp[4:0] == 5'h1F) begin
+          recip_o <= {sign, 5'h1F, 10'b0};
+        end else begin
+          recip_o <= {sign, recip_exp[4:0], lut[lut_idx][9:0]};
+        end
       end
       valid_o <= valid_i;
     end

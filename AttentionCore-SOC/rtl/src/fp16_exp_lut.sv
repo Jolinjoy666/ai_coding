@@ -96,12 +96,18 @@ module fp16_exp_lut
 
   assign is_negative = x_i[15];
 
+  logic is_inf;
+  assign is_inf = (x_i[14:10] == 5'h1F) && (x_i[9:0] == 10'b0);
+
   always_comb begin
-    if (!is_negative || x_i[14:10] == 5'b0) begin
-      // Positive or zero: exp(x) ≈ 1.0 for softmax
+    if (is_inf && is_negative) begin
+      // -inf: exp(-inf) = 0
+      lut_index = 8'd0;
+    end else if (!is_negative || x_i[14:10] == 5'b0) begin
+      // Positive, zero, or denorm: exp(x) ≈ 1.0 for softmax
       lut_index = 8'd0;
     end else begin
-      // Negative: index = {exponent, mantissa[9:7]}
+      // Negative normal: index = {exponent, mantissa[9:7]}
       lut_index = {x_i[14:10], x_i[9:7]};
     end
   end
@@ -115,8 +121,11 @@ module fp16_exp_lut
       lut_value_q <= '0;
       valid_q     <= 1'b0;
     end else begin
-      if (!is_negative || x_i[14:10] == 5'b0) begin
-        // Positive or zero: output 1.0
+      if (is_inf && is_negative) begin
+        // -inf: exp(-inf) = 0
+        lut_value_q <= 16'h0000;
+      end else if (!is_negative || x_i[14:10] == 5'b0) begin
+        // Positive, zero, or denorm: output 1.0
         lut_value_q <= 16'h3C00;
       end else begin
         lut_value_q <= lut[lut_index];
