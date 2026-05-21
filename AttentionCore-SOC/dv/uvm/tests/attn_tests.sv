@@ -496,8 +496,8 @@ class e2e_attention_test extends attn_base_test;
     // Step 3: Write K to KV-Cache SRAM
     write_sram16(KVCACHE_BASE, k_data, NUM_EL, "K");
 
-    // Step 4: Write V to KV-Cache SRAM (offset 64 FP16 words = 128 bytes)
-    write_sram16(KVCACHE_BASE + 32'h80, v_data, NUM_EL, "V");
+    // Step 4: Write V to KV-Cache SRAM (offset 128 FP16 words = 256 bytes, after K)
+    write_sram16(KVCACHE_BASE + 32'h100, v_data, NUM_EL, "V");
 
     // Step 5: Configure attention engine
     write_reg(ATTN_BASE + 8'h10, 32'h0000_0008);  // SEQ_LEN = 8
@@ -562,7 +562,8 @@ class e2e_attention_test extends attn_base_test;
             diff = exp_val[14:0] - act_val[14:0];
 
           // Allow up to 4 ULP difference (FP16 precision)
-          if (diff > 16'h0004 || (exp_val[15] != act_val[15])) begin
+          // Treat +0 and -0 as equal (both have magnitude 0)
+          if (diff > 16'h0004 || (exp_val[15] != act_val[15] && diff != 0)) begin
             mismatches++;
             if (mismatches <= 10) begin
               `uvm_info("TEST", $sformatf("MISMATCH[%0d]: exp=0x%04h act=0x%04h diff=%0d",

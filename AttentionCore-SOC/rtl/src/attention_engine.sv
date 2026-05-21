@@ -148,7 +148,11 @@ module attention_engine
 
       // Update status
       status_busy <= busy;
-      status_done <= done;
+      // status_done is persistent: set when MHS reports done, cleared on new start
+      if (start)
+        status_done <= 1'b0;
+      else if (done)
+        status_done <= 1'b1;
 
       // Update IRQ status
       if (fa_done) irq_status[IRQ_ATTN_DONE] <= 1'b1;

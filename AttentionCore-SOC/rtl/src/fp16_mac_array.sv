@@ -35,8 +35,8 @@ module fp16_mac_array
     end
   endgenerate
 
-  // Shared valid pipeline (matches PE latency: 3 mul + 1 acc = 4 cycles)
-  logic valid_s1, valid_s2, valid_s3, valid_s4;
+  // Shared valid pipeline (matches PE latency: 3 mul + 1 valid-align + 1 acc + 1 out = 5 cycles)
+  logic valid_s1, valid_s2, valid_s3, valid_s4, valid_s5;
 
   always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
@@ -44,14 +44,16 @@ module fp16_mac_array
       valid_s2 <= 1'b0;
       valid_s3 <= 1'b0;
       valid_s4 <= 1'b0;
+      valid_s5 <= 1'b0;
     end else begin
       valid_s1 <= valid_i;
       valid_s2 <= valid_s1;
       valid_s3 <= valid_s2;
       valid_s4 <= valid_s3;
+      valid_s5 <= valid_s4;
     end
   end
 
-  assign valid_o = valid_s4;
+  assign valid_o = valid_s5;
 
 endmodule

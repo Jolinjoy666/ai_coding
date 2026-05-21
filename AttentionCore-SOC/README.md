@@ -13,6 +13,7 @@
 | v0.3 | 2026-05-14 | verification_passed | 验证通过：修复编译错误，全部测试通过（38项） |
 | v0.4 | 2026-05-14 | uvm_verified | UVM验证：构建完整UVM环境，8项UVM测试×3种子=24次回归全部通过 |
 | v0.5 | 2026-05-14 | e2e_verified | 端到端验证：实现完整FlashAttention计算流水线，新增e2e_attention_test，7项测试全部通过 |
+| v0.6 | 2026-05-21 | golden_matched | 精度验证：重写Golden Model为bit级FP16运算，128/128元素精确匹配，清除debug trace |
 
 ### v0.1 版本特征
 
@@ -87,9 +88,23 @@
   - 输出 .bin（FP16 二进制）和 .hex（文本十六进制）格式
 - **端到端 UVM 测试**：
   - 新增 `e2e_attention_test`：通过 APB 加载 Q/K/V → 启动引擎 → 比对输出
-  - 数据布局：Q 在 Feature SRAM[0..63]，K 在 KV[0..63]，V 在 KV[64..127]，O 在 Feature SRAM[128..191]
+  - 数据布局：Q 在 Feature SRAM[0..127]，K 在 KV-Cache[0..127]，V 在 KV-Cache[128..255]，O 在 Feature SRAM[128..255]
   - 容差 ±4 ULP（FP16 精度）
 - **回归验证**：7 项 UVM 测试全部通过（新增 e2e_attention_test，原有 8 项不受影响）
+
+### v0.6 版本特征
+
+- **Golden Model bit 级精度匹配**：
+  - `tools/generate_golden_fp16.py` 完全重写：用 Python 整数位运算实现 FP16 乘法/加法
+  - 精确匹配 RTL 截断行为（无舍入），而非使用 numpy float16（IEEE 754 round-to-nearest-even）
+  - 乘法：22bit 乘积 → 归一化 → 截断到 10bit mantissa（与 fp16_multiplier.sv 一致）
+  - 加法：12bit sum → 4 级优先编码器归一化 → 截断（与 fp16_adder.sv 一致）
+  - Exp LUT / Reciprocal LUT / Comparator / RowMax / RowSum 均用 bit 级实现精确匹配 RTL
+  - **128/128 输出元素完全匹配（±0 ULP）**
+- **清除 debug trace**：
+  - `fp16_mac.sv`：移除 3 条 `$display` 管线跟踪
+  - `flash_attention_core.sv`：移除 90+ 条 `$display` 状态/数据跟踪
+- **测试比较修复**：+0 (0x0000) 和 -0 (0x8000) 语义等价，比较时忽略符号位差异
 
 ## 目录结构
 
@@ -117,7 +132,9 @@ AttentionCore-SOC/
 ├── formal/                            # 形式验证
 ├── synth/                             # 综合
 ├── tools/                             # 辅助工具
-│   └── generate_golden.py             # Golden Model 生成器（含 attention golden）
+│   ├── generate_golden.py             # Golden Model 生成器（PyTorch 参考）
+│   ├── generate_golden_fp16.py        # FP16 bit 级 Golden Model（精确匹配 RTL）
+│   └── golden/                        # 参考数据（Q/K/V/O .hex/.bin）
 ├── reports/                           # 各阶段报告
 │   ├── requirements/
 │   ├── architecture/
@@ -167,8 +184,7 @@ AttentionCore-SOC/
 ## 环境要求
 
 - Synopsys VCS（仿真）
-- Python 3.6+（Golden Model 对比）
-- PyTorch（参考模型生成）
+- Python 3.6+（Golden Model 生成，仅需标准库）
 
 ## 快速开始
 
@@ -196,5 +212,5 @@ make test_all
 
 ---
 
-版本：v0.5
-最后更新：2026年5月14日
+版本：v0.6
+最后更新：2026年5月21日

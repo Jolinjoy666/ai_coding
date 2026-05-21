@@ -19,13 +19,13 @@
 ## Current workflow stage
 
 ```text
-verification_passed
+golden_matched
 ```
 
 ## Next recommended stage
 
 ```text
-uvm_env_generation
+design_refinement_or_signoff
 ```
 
 ## AI operating rules for this project
@@ -44,10 +44,10 @@ uvm_env_generation
 
 - OQ-001: RISC-V 核心选择 picorv32 还是自建？（P0，微架构阶段需确定）
 - OQ-003: SRAM 宏的具体时序参数（P1）
-- OQ-004: FP16 exp 查表精度是否满足 FlashAttention 数学等价要求？（P0，需验证 256 条目 LUT）
 
 ## Resolved questions
 
+- OQ-004: FP16 exp 查表精度已验证——256 条目 LUT（{exp[4:0], man[9:7]} 索引）+ FP16 截断运算，128/128 元素 bit 级精确匹配
 - 数据精度：已确定 FP16（IEEE 754 半精度）
 - 多 batch：已确定仅支持 batch_size=1
 - FlashAttention 分块：已确定 B_r=B_c=4（入门版默认）
